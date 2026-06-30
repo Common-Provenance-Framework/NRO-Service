@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: trustedServicedb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  nro-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      TP_DB_URL: jdbc:postgresql://postgres:5432/trustedServicedb
+      TP_DB_USER: postgres
+      TP_DB_PASSWORD: postgres
+      TP_ID: TrustedParty
+      TP_FQDN: trusted-party:8020
+      TP_TRUSTED_CERTS_DIR: /certs/trusted_certs
+      TP_PUBLIC_CERT_PATH: /certs/cert-dev/tp.pem
+      TP_PRIVATE_KEY_PATH: /certs/cert-dev/tp.key
+    ports:
+      - "8020:8020"
+    volumes:
+      - ./certs:/certs:ro
+volumes:
+  postgres-data:
