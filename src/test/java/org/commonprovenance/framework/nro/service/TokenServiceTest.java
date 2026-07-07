@@ -9,6 +9,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.StringWriter;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,17 +19,16 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
-import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPublicKey;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -62,7 +62,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jwt.SignedJWT;
 
 @ExtendWith(MockitoExtension.class)
 class TokenServiceTest {
@@ -366,7 +369,7 @@ class TokenServiceTest {
 
     String graph = "graph";
     byte[] graphBytes = graph.getBytes(StandardCharsets.UTF_8);
-    Signature signer = Signature.getInstance("SHA256withECDSA");
+    java.security.Signature signer = java.security.Signature.getInstance("SHA256withECDSA");
     signer.initSign(keyPair.getPrivate());
     signer.update(graphBytes);
     String signatureB64 = Base64.getEncoder().encodeToString(signer.sign());
@@ -385,6 +388,59 @@ class TokenServiceTest {
     boolean verified = tokenService.verifySignature(body);
 
     assertThat(verified).isTrue();
+  }
+
+  @Test
+  void buildJwtToken_returnsJWT() throws Exception {
+    KeyPair keyPair = generateEcKeyPair();
+    X509Certificate x509 = createSelfSignedCertificate(keyPair);
+    String certPem = toPem(x509);
+    String privateKeyPem = toPkcs8Pem(keyPair.getPrivate());
+
+    Path keyPath = Files.createTempFile("tp-test-key", ".pem");
+    Files.writeString(keyPath, privateKeyPem, StandardCharsets.UTF_8);
+    keyPath.toFile().deleteOnExit();
+
+    LocalDateTime tokenTimestamp = LocalDateTime.of(2026, 1, 1, 10, 0);
+    LocalDateTime documentTimestamp = LocalDateTime.of(2026, 1, 1, 9, 0);
+    String documentDigest = "37a0bb04c1bbf7294ce87e5144d75cce4a99f2bb203ee0b4cf6cca0d90e8a728";
+    String bundleId = "http://example.org/";
+    String issuerId = "tp-id";
+    String originatorId = "org-1";
+
+    when(appProperties.getPrivateKeyPath()).thenReturn(keyPath.toString());
+    when(appProperties.getCertificate()).thenReturn(certPem);
+    when(appProperties.getId()).thenReturn(issuerId);
+    when(appProperties.getFqdn()).thenReturn("tp.example");
+
+    Method buildJwtToken = TokenService.class.getDeclaredMethod("buildJwtToken",
+        String.class, LocalDateTime.class, LocalDateTime.class, String.class, String.class);
+    buildJwtToken.setAccessible(true);
+    String jwt = (String) buildJwtToken.invoke(tokenService,
+        originatorId,
+        tokenTimestamp,
+        documentTimestamp,
+        documentDigest,
+        bundleId);
+
+    SignedJWT signedJWT = SignedJWT.parse(jwt);
+    // check signature
+    assertThat(signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()))).isTrue();
+
+    // check payload
+    assertThat(signedJWT.getJWTClaimsSet().getIssuer()).isEqualTo(issuerId);
+    assertThat(signedJWT.getJWTClaimsSet().getIssueTime()).isEqualTo(Date.from(tokenTimestamp.toInstant(ZoneOffset.UTC)));
+    assertThat(signedJWT.getJWTClaimsSet().getSubject()).isEqualTo(bundleId);
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("documentDigest")).isEqualTo(documentDigest);
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hashFunction")).isEqualTo("SHA256");
+    assertThat(signedJWT.getJWTClaimsSet().getLongClaim("documentCreationTimestamp")).isEqualTo(documentTimestamp.toEpochSecond(ZoneOffset.UTC));
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("originatorId")).isEqualTo(originatorId);
+
+    // check header
+    assertThat(signedJWT.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.ES256);
+    assertThat(signedJWT.getHeader().getType()).isEqualTo(JOSEObjectType.JWT);
+    assertThat(signedJWT.getHeader().getCustomParam("trustedPartyUri")).isEqualTo("tp.example");
+    assertThat(signedJWT.getHeader().getX509CertChain().size()).isEqualTo(1);
   }
 
   @Test
@@ -427,31 +483,17 @@ class TokenServiceTest {
     assertThat(doc.getSignature()).isNull();
     assertThat(doc.getOrganization().getOrgName()).isEqualTo("org-1");
     assertThat(doc.getCreatedOn()).isEqualTo(createdOn);
+    assertThat(token.getTokenValue()).matches("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$");
 
     String expectedHash = sha256Hex(Base64.getDecoder().decode(body.getDocument()));
     assertThat(token.getHash()).isEqualTo(expectedHash);
 
-    Map<String, Object> additionalData = new LinkedHashMap<>();
-    additionalData.put("bundle", doc.getIdentifier());
-    additionalData.put("hashFunction", "SHA256");
-    additionalData.put("trustedPartyUri", "tp.example");
-    additionalData.put("trustedPartyCertificate", certPem);
-
-    Map<String, Object> data = new LinkedHashMap<>();
-    data.put("originatorId", "org-1");
-    data.put("authorityId", "tp-id");
-    data.put("tokenTimestamp", token.getCreatedOn());
-    data.put("documentCreationTimestamp", doc.getCreatedOn());
-    data.put("documentDigest", token.getHash());
-    data.put("additionalData", additionalData);
-
-    byte[] canonical = canonicalizeData(data);
-    Signature verifier = Signature.getInstance("SHA256withECDSA");
-    verifier.initVerify(keyPair.getPublic());
-    verifier.update(canonical);
-
-    boolean verified = verifier.verify(Base64.getDecoder().decode(token.getSignature()));
+    SignedJWT signedJWT = SignedJWT.parse(token.getTokenValue());
+    boolean verified = signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()));
     assertThat(verified).isTrue();
+
+    assertThat(signedJWT.getJWTClaimsSet().getIssuer()).isEqualTo("tp-id");
+    assertThat(signedJWT.getJWTClaimsSet().getSubject()).isEqualTo("http://example.org/b1");
   }
 
   private TokenRequestDTO buildRequest(DocumentType documentType) {
@@ -528,22 +570,4 @@ class TokenServiceTest {
     return sb.toString();
   }
 
-  private static byte[] canonicalizeData(Map<String, Object> data) throws Exception {
-    ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
-    Object sorted = sortRecursively(data);
-    String json = mapper.writeValueAsString(sorted);
-    return json.getBytes(StandardCharsets.UTF_8);
-  }
-
-  private static Object sortRecursively(Object value) {
-    if (value instanceof Map<?, ?> map) {
-      TreeMap<String, Object> sorted = new TreeMap<>();
-      for (Map.Entry<?, ?> entry : map.entrySet()) {
-        String key = String.valueOf(entry.getKey());
-        sorted.put(key, sortRecursively(entry.getValue()));
-      }
-      return sorted;
-    }
-    return value;
-  }
 }

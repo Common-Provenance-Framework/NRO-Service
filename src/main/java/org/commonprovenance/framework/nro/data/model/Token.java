@@ -27,7 +27,7 @@ public class Token {
   private LocalDateTime createdOn;
 
   @Lob
-  private String signature;
+  private String tokenValue;
 
   public Long getId() {
     return id;
@@ -37,12 +37,12 @@ public class Token {
     this.id = id;
   }
 
-  public String getSignature() {
-    return signature;
+  public String getTokenValue() {
+    return tokenValue;
   }
 
-  public void setSignature(String signature) {
-    this.signature = signature;
+  public void setTokenValue(String tokenValue) {
+    this.tokenValue = tokenValue;
   }
 
   public LocalDateTime getCreatedOn() {
@@ -86,12 +86,12 @@ public class Token {
         && Objects.equals(hash, token.hash)
         && hashFunction == token.hashFunction
         && Objects.equals(createdOn, token.createdOn)
-        && Objects.equals(signature, token.signature);
+        && Objects.equals(tokenValue, token.tokenValue);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, document, hash, hashFunction, createdOn, signature);
+    return Objects.hash(id, document, hash, hashFunction, createdOn, tokenValue);
   }
 
   @Override
@@ -102,7 +102,7 @@ public class Token {
         ", hash='" + hash + '\'' +
         ", hashFunction=" + hashFunction +
         ", createdOn=" + createdOn +
-        ", signature='" + signature + '\'' +
+        ", tokenValue='" + tokenValue + '\'' +
         '}';
   }
 }

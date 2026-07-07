@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.Objects.requireNonNull;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -40,8 +41,8 @@ class TokenRepositoryTest {
     List<Token> result = tokenRepository.findByDocument(documentA);
 
     assertThat(result)
-        .extracting(Token::getHash)
-        .containsExactlyInAnyOrder("hash-1", "hash-2");
+        .extracting(token -> token.getTokenValue())
+        .containsExactlyInAnyOrder("jwt-hash-1", "jwt-hash-2");
   }
 
   @Test
@@ -72,16 +73,19 @@ class TokenRepositoryTest {
     token.setHash("hash-save");
     token.setHashFunction(HashFunction.SHA512);
     token.setCreatedOn(LocalDateTime.now());
-    token.setSignature("sig-save");
+    token.setTokenValue("jwt-save");
 
     Token saved = tokenRepository.save(token);
     entityManager.flush();
     entityManager.clear();
 
-    Token reloaded = tokenRepository.findById(saved.getId()).orElseThrow();
+    assertThat(saved.getId()).isNotNull();
+
+    Token reloaded = tokenRepository.findById(requireNonNull(saved.getId())).orElseThrow();
 
     assertThat(reloaded.getHash()).isEqualTo("hash-save");
     assertThat(reloaded.getHashFunction()).isEqualTo(HashFunction.SHA512);
+    assertThat(reloaded.getTokenValue()).isEqualTo("jwt-save");
     assertThat(reloaded.getDocument().getIdentifier()).isEqualTo("doc-save");
   }
 
@@ -120,7 +124,7 @@ class TokenRepositoryTest {
     token.setHash(hash);
     token.setHashFunction(HashFunction.SHA256);
     token.setCreatedOn(LocalDateTime.now());
-    token.setSignature("sig-" + hash);
+    token.setTokenValue("jwt-" + hash);
     entityManager.persist(token);
     entityManager.flush();
     return token;

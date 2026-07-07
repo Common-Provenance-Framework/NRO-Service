@@ -2,7 +2,7 @@ package org.commonprovenance.framework.nro.rest;
 
 import java.util.List;
 
-import org.commonprovenance.framework.nro.api.Token.TokenDTO;
+import org.commonprovenance.framework.nro.api.TokenResponseDTO;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.facade.TokenFacade;
 import org.springframework.http.ResponseEntity;
@@ -28,22 +28,22 @@ public class TokenRestController {
   }
 
   @GetMapping("/organizations/{orgId}/tokens/{docId}/{docFormat}")
-  public ResponseEntity<List<TokenDTO>> getToken(
+  public ResponseEntity<List<TokenResponseDTO>> getToken(
       @PathVariable String orgId,
       @PathVariable String docId,
       @PathVariable String docFormat) {
-    List<TokenDTO> response = tokenFacade.getToken(orgId, docId, docFormat);
+    List<TokenResponseDTO> response = tokenFacade.getToken(orgId, docId, docFormat);
     return ResponseEntity.ok(response);
   }
 
   @GetMapping("/organizations/{orgId}/tokens")
-  public ResponseEntity<List<TokenDTO>> getAllTokens(@PathVariable String orgId) {
+  public ResponseEntity<List<TokenResponseDTO>> getAllTokens(@PathVariable String orgId) {
     return ResponseEntity.ok(tokenFacade.getAllTokens(orgId));
   }
 
   @PostMapping("/issueToken")
-  public ResponseEntity<List<TokenDTO>> issueToken(@RequestBody @Valid TokenRequestDTO body) {
-    List<TokenDTO> response = tokenFacade.issueToken(body);
+  public ResponseEntity<List<TokenResponseDTO>> issueToken(@RequestBody @Valid TokenRequestDTO body) {
+    List<TokenResponseDTO> response = tokenFacade.issueToken(body);
     return ResponseEntity.status(201).body(response);
   }
 

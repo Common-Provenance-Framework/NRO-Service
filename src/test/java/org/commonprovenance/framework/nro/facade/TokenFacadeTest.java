@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 
-import org.commonprovenance.framework.nro.api.Token.TokenDTO;
+import org.commonprovenance.framework.nro.api.TokenResponseDTO;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.model.Document;
@@ -39,12 +39,12 @@ class TokenFacadeTest {
   @Test
   void getToken_returnsMappedList() {
     Token token = new Token();
-    TokenDTO dto = new TokenDTO();
+    TokenResponseDTO dto = new TokenResponseDTO();
 
     when(tokenService.getToken("org-1", "doc-1", "json")).thenReturn(List.of(token));
     when(tokenMapper.mapToList(List.of(token), appProperties)).thenReturn(List.of(dto));
 
-    List<TokenDTO> result = tokenFacade.getToken("org-1", "doc-1", "json");
+    List<TokenResponseDTO> result = tokenFacade.getToken("org-1", "doc-1", "json");
 
     assertThat(result).containsExactly(dto);
   }
@@ -56,15 +56,15 @@ class TokenFacadeTest {
     tokenA.setHash("hash-a");
     Token tokenB = new Token();
     tokenB.setHash("hash-b");
-    TokenDTO dtoA = new TokenDTO();
-    TokenDTO dtoB = new TokenDTO();
+    TokenResponseDTO dtoA = new TokenResponseDTO();
+    TokenResponseDTO dtoB = new TokenResponseDTO();
 
     when(tokenService.getAllTokens("org-1"))
         .thenReturn(Map.of(document, List.of(tokenA, tokenB)));
     when(tokenMapper.mapToDTO(tokenA, appProperties)).thenReturn(dtoA);
     when(tokenMapper.mapToDTO(tokenB, appProperties)).thenReturn(dtoB);
 
-    List<TokenDTO> result = tokenFacade.getAllTokens("org-1");
+    List<TokenResponseDTO> result = tokenFacade.getAllTokens("org-1");
 
     assertThat(result).containsExactlyInAnyOrder(dtoA, dtoB);
   }
@@ -73,12 +73,12 @@ class TokenFacadeTest {
   void issueToken_returnsMappedList() {
     TokenRequestDTO body = TestDataFactory.tokenRequest();
     Token token = new Token();
-    TokenDTO dto = new TokenDTO();
+    TokenResponseDTO dto = new TokenResponseDTO();
 
     when(tokenService.issueToken(body)).thenReturn(List.of(token));
     when(tokenMapper.mapToList(List.of(token), appProperties)).thenReturn(List.of(dto));
 
-    List<TokenDTO> result = tokenFacade.issueToken(body);
+    List<TokenResponseDTO> result = tokenFacade.issueToken(body);
 
     assertThat(result).containsExactly(dto);
   }
