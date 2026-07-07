@@ -1,8 +1,13 @@
 package org.commonprovenance.framework.nro.data.repository;
 
+import static java.util.Objects.requireNonNull;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.enums.DocumentType;
-import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
@@ -12,12 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static java.util.Objects.requireNonNull;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -70,9 +69,6 @@ class TokenRepositoryTest {
 
     Token token = new Token();
     token.setDocument(document);
-    token.setHash("hash-save");
-    token.setHashFunction(HashFunction.SHA512);
-    token.setCreatedOn(LocalDateTime.now());
     token.setTokenValue("jwt-save");
 
     Token saved = tokenRepository.save(token);
@@ -83,8 +79,6 @@ class TokenRepositoryTest {
 
     Token reloaded = tokenRepository.findById(requireNonNull(saved.getId())).orElseThrow();
 
-    assertThat(reloaded.getHash()).isEqualTo("hash-save");
-    assertThat(reloaded.getHashFunction()).isEqualTo(HashFunction.SHA512);
     assertThat(reloaded.getTokenValue()).isEqualTo("jwt-save");
     assertThat(reloaded.getDocument().getIdentifier()).isEqualTo("doc-save");
   }
@@ -121,9 +115,6 @@ class TokenRepositoryTest {
   private Token saveToken(Document document, String hash) {
     Token token = new Token();
     token.setDocument(document);
-    token.setHash(hash);
-    token.setHashFunction(HashFunction.SHA256);
-    token.setCreatedOn(LocalDateTime.now());
     token.setTokenValue("jwt-" + hash);
     entityManager.persist(token);
     entityManager.flush();

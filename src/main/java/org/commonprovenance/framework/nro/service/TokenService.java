@@ -42,7 +42,6 @@ import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.enums.DocumentType;
-import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
@@ -386,9 +385,6 @@ public class TokenService {
 
     Token token = new Token();
     token.setDocument(doc);
-    token.setHash(documentDigest);
-    token.setHashFunction(HashFunction.SHA256);
-    token.setCreatedOn(tokenTimestamp);
     token.setTokenValue(tokenValue);
     return token;
   }

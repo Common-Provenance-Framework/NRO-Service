@@ -42,7 +42,7 @@ class TokenFacadeTest {
     TokenResponseDTO dto = new TokenResponseDTO();
 
     when(tokenService.getToken("org-1", "doc-1", "json")).thenReturn(List.of(token));
-    when(tokenMapper.mapToList(List.of(token), appProperties)).thenReturn(List.of(dto));
+    when(tokenMapper.mapToList(List.of(token))).thenReturn(List.of(dto));
 
     List<TokenResponseDTO> result = tokenFacade.getToken("org-1", "doc-1", "json");
 
@@ -53,16 +53,16 @@ class TokenFacadeTest {
   void getAllTokens_returnsFlattenedList() {
     Document document = new Document();
     Token tokenA = new Token();
-    tokenA.setHash("hash-a");
+    tokenA.setTokenValue("jwt_A");
     Token tokenB = new Token();
-    tokenB.setHash("hash-b");
+    tokenB.setTokenValue("jwt_B");
     TokenResponseDTO dtoA = new TokenResponseDTO();
     TokenResponseDTO dtoB = new TokenResponseDTO();
 
     when(tokenService.getAllTokens("org-1"))
         .thenReturn(Map.of(document, List.of(tokenA, tokenB)));
-    when(tokenMapper.mapToDTO(tokenA, appProperties)).thenReturn(dtoA);
-    when(tokenMapper.mapToDTO(tokenB, appProperties)).thenReturn(dtoB);
+    when(tokenMapper.mapToDTO(tokenA)).thenReturn(dtoA);
+    when(tokenMapper.mapToDTO(tokenB)).thenReturn(dtoB);
 
     List<TokenResponseDTO> result = tokenFacade.getAllTokens("org-1");
 
@@ -76,7 +76,7 @@ class TokenFacadeTest {
     TokenResponseDTO dto = new TokenResponseDTO();
 
     when(tokenService.issueToken(body)).thenReturn(List.of(token));
-    when(tokenMapper.mapToList(List.of(token), appProperties)).thenReturn(List.of(dto));
+    when(tokenMapper.mapToList(List.of(token))).thenReturn(List.of(dto));
 
     List<TokenResponseDTO> result = tokenFacade.issueToken(body);
 

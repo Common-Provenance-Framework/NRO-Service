@@ -34,7 +34,7 @@ public class TokenFacadeImpl implements TokenFacade {
         documentId,
         documentFormat);
 
-    return tokenMapper.mapToList(tokens, appProperties);
+    return tokenMapper.mapToList(tokens);
   }
 
   @Override
@@ -47,7 +47,7 @@ public class TokenFacadeImpl implements TokenFacade {
       List<Token> tokens = entry.getValue();
 
       for (Token token : tokens) {
-        TokenResponseDTO dto = tokenMapper.mapToDTO(token, appProperties);
+        TokenResponseDTO dto = tokenMapper.mapToDTO(token);
         result.add(dto);
       }
     }
@@ -56,7 +56,7 @@ public class TokenFacadeImpl implements TokenFacade {
 
   @Override
   public List<TokenResponseDTO> issueToken(TokenRequestDTO body) {
-    return tokenMapper.mapToList(tokenService.issueToken(Objects.requireNonNull(body)), appProperties);
+    return tokenMapper.mapToList(tokenService.issueToken(Objects.requireNonNull(body)));
   }
 
   @Override

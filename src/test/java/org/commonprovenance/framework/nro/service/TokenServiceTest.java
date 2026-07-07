@@ -479,16 +479,18 @@ class TokenServiceTest {
     Token token = tokens.get(0);
     Document doc = token.getDocument();
 
-    assertThat(token.getHashFunction()).isEqualTo(HashFunction.SHA256);
+    SignedJWT signedJWT = SignedJWT.parse(token.getTokenValue());
+    assertThat(signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()))).isTrue();
+
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hashFunction")).isEqualTo(HashFunction.SHA256.getValue());
     assertThat(doc.getSignature()).isNull();
     assertThat(doc.getOrganization().getOrgName()).isEqualTo("org-1");
     assertThat(doc.getCreatedOn()).isEqualTo(createdOn);
     assertThat(token.getTokenValue()).matches("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$");
 
     String expectedHash = sha256Hex(Base64.getDecoder().decode(body.getDocument()));
-    assertThat(token.getHash()).isEqualTo(expectedHash);
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("documentDigest")).isEqualTo(expectedHash);
 
-    SignedJWT signedJWT = SignedJWT.parse(token.getTokenValue());
     boolean verified = signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()));
     assertThat(verified).isTrue();
 
