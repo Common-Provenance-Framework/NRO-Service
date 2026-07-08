@@ -10,7 +10,7 @@ public interface TokenFacade {
 
   List<TokenResponseDTO> getAllTokens(String organizationId);
 
-  List<TokenResponseDTO> issueToken(TokenRequestDTO body);
+  TokenResponseDTO issueToken(TokenRequestDTO body);
 
   boolean verifySignature(TokenRequestDTO body);
 }

@@ -42,8 +42,8 @@ public class TokenRestController {
   }
 
   @PostMapping("/issueToken")
-  public ResponseEntity<List<TokenResponseDTO>> issueToken(@RequestBody @Valid TokenRequestDTO body) {
-    List<TokenResponseDTO> response = tokenFacade.issueToken(body);
+  public ResponseEntity<TokenResponseDTO> issueToken(@RequestBody @Valid TokenRequestDTO body) {
+    TokenResponseDTO response = tokenFacade.issueToken(body);
     return ResponseEntity.status(201).body(response);
   }
 

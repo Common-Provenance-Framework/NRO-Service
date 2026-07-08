@@ -75,12 +75,12 @@ class TokenFacadeTest {
     Token token = new Token();
     TokenResponseDTO dto = new TokenResponseDTO();
 
-    when(tokenService.issueToken(body)).thenReturn(List.of(token));
-    when(tokenMapper.mapToList(List.of(token))).thenReturn(List.of(dto));
+    when(tokenService.issueToken(body)).thenReturn(token);
+    when(tokenMapper.mapToDTO(token)).thenReturn(dto);
 
-    List<TokenResponseDTO> result = tokenFacade.issueToken(body);
+    TokenResponseDTO result = tokenFacade.issueToken(body);
 
-    assertThat(result).containsExactly(dto);
+    assertThat(result).isEqualTo(dto);
   }
 
   @Test

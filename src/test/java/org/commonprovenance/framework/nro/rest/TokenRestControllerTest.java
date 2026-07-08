@@ -59,7 +59,7 @@ class TokenRestControllerTest {
   @Test
   void issueToken_validRequest_returnsCreated() throws Exception {
     TokenRequestDTO body = TestDataFactory.tokenRequest();
-    when(tokenFacade.issueToken(any(TokenRequestDTO.class))).thenReturn(List.of(new TokenResponseDTO()));
+    when(tokenFacade.issueToken(any(TokenRequestDTO.class))).thenReturn(new TokenResponseDTO());
 
     mockMvc.perform(post("/api/v1/issueToken")
         .contentType(MediaType.APPLICATION_JSON)

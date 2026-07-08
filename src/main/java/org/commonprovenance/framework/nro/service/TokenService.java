@@ -42,6 +42,7 @@ import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
@@ -57,6 +58,7 @@ import org.commonprovenance.framework.nro.exceptions.InvalidTimestampException;
 import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
+import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
 import org.commonprovenance.framework.nro.utils.prov.ProvToolboxUtils;
 import org.openprovenance.prov.model.Bundle;
 import org.openprovenance.prov.model.StatementOrBundle;
@@ -127,7 +129,7 @@ public class TokenService {
   }
 
   @Transactional
-  public List<Token> issueToken(@NonNull TokenRequestDTO body) {
+  public Token issueToken(@NonNull TokenRequestDTO body) {
     if (body.getOrganizationId() == null || body.getOrganizationId().isBlank()) {
       String inferred = inferOrganizationId(body);
       if (inferred != null && !inferred.isBlank()) {
@@ -166,18 +168,10 @@ public class TokenService {
     return issueTokenAndStoreDoc(body);
   }
 
-  protected List<Token> issueTokenAndStoreDoc(TokenRequestDTO body) {
-    if (body.getOrganizationId() == null || body.getOrganizationId().isBlank()) {
-      String inferred = inferOrganizationId(body);
-      if (inferred != null && !inferred.isBlank()) {
-        body.setOrganizationId(inferred);
-      } else {
-        throw new InvalidRequestException("Missing organizationId");
-      }
-    }
-    // Used fully-qualified name to avoid clash with cz.muni.fi.trusted_party.data.model.Document
+  protected Token issueTokenAndStoreDoc(TokenRequestDTO body) {
     org.openprovenance.prov.model.Document provDocument = ProvToolboxUtils.parseDocument(
-        body.getDocument(), body.getDocumentFormat());
+        body.getDocument(),
+        body.getDocumentFormat());
 
     Bundle bundle = extractSingleBundle(provDocument);
     String bundleId = resolveBundleId(bundle);
@@ -189,7 +183,7 @@ public class TokenService {
     }
 
     if (body.getDocumentType() == DocumentType.META) {
-      return List.of(buildUnsignedMetaToken(body, bundleId));
+      return buildMetaToken(body, bundleId);
     }
 
     Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
@@ -205,7 +199,7 @@ public class TokenService {
     if (existingDoc.isPresent()) {
       List<Token> tokens = tokenRepository.findByDocument(existingDoc.get());
       if (!tokens.isEmpty()) {
-        return tokens;
+        throw new TokenAlreadyExistsException("Token for Document with identifier [" + bundleId + "] already exists");
       }
     }
 
@@ -229,9 +223,9 @@ public class TokenService {
     doc.setSignature(body.getDocumentType() == DocumentType.GRAPH ? body.getSignature() : null);
     documentRepository.save(doc);
 
-    Token token = buildSignedToken(body, doc, bundleId);
+    Token token = buildToken(body, doc, bundleId);
     tokenRepository.save(Objects.requireNonNull(token));
-    return List.of(token);
+    return token;
   }
 
   public boolean verifySignature(TokenRequestDTO body) {
@@ -354,7 +348,7 @@ public class TokenService {
     // TODO: Implement real subgraph validation - was not implemented in Python version
   }
 
-  private Token buildUnsignedMetaToken(TokenRequestDTO body, String bundleId) {
+  private Token buildMetaToken(TokenRequestDTO body, String bundleId) {
     Document doc = new Document();
     doc.setIdentifier(bundleId);
     doc.setDocFormat(body.getDocumentFormat());
@@ -367,12 +361,12 @@ public class TokenService {
     org.setOrgName(body.getOrganizationId());
     doc.setOrganization(org);
 
-    Token token = buildSignedToken(body, doc, bundleId);
+    Token token = buildToken(body, doc, bundleId);
     token.setDocument(doc);
     return token;
   }
 
-  private Token buildSignedToken(TokenRequestDTO body, Document doc, String bundleId) {
+  private Token buildToken(TokenRequestDTO body, Document doc, String bundleId) {
     LocalDateTime tokenTimestamp = LocalDateTime.now();
     String documentDigest = sha256Hex(Base64.getDecoder().decode(body.getDocument()));
 
@@ -385,6 +379,7 @@ public class TokenService {
 
     Token token = new Token();
     token.setDocument(doc);
+    token.setType(body.getDocumentType().name());
     token.setTokenValue(tokenValue);
     return token;
   }
@@ -400,10 +395,10 @@ public class TokenService {
           .issuer(appProperties.getId()) // authorityId
           .issueTime(Date.from(tokenTimestamp.toInstant(ZoneOffset.UTC))) // tokenTimestamp
           .subject(bundleId) // bundle
-          .claim("documentDigest", documentDigest)
-          .claim("hashFunction", "SHA256")
-          .claim("documentCreationTimestamp", Date.from(documentCreationTimestamp.toInstant(ZoneOffset.UTC)))
-          .claim("originatorId", originatorId)
+          .claim("doc_digest", documentDigest)
+          .claim("hash_alg", HashFunction.SHA256.getValue())
+          .claim("doc_iat", Date.from(documentCreationTimestamp.toInstant(ZoneOffset.UTC)))
+          .claim("org_id", originatorId)
           .build();
 
       X509Certificate clientCert = parsePemCertificate(appProperties.getCertificate());

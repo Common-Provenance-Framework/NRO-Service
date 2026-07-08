@@ -55,6 +55,7 @@ import org.commonprovenance.framework.nro.exceptions.InvalidTimestampException;
 import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
+import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
 import org.commonprovenance.framework.nro.utils.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -239,17 +240,17 @@ class TokenServiceTest {
     TokenRequestDTO body = buildRequest(DocumentType.GRAPH);
     Organization organization = new Organization();
     organization.setOrgName("org-1");
-    List<Token> tokens = List.of(new Token());
+    Token expected = new Token();
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
 
     TokenService serviceSpy = spy(tokenService);
     doReturn(true).when(serviceSpy).verifySignature(body);
-    doReturn(tokens).when(serviceSpy).issueTokenAndStoreDoc(body);
+    doReturn(expected).when(serviceSpy).issueTokenAndStoreDoc(body);
 
-    List<Token> result = serviceSpy.issueToken(body);
+    Token result = serviceSpy.issueToken(body);
 
-    assertThat(result).isSameAs(tokens);
+    assertThat(result).isSameAs(expected);
   }
 
   @Test
@@ -257,25 +258,25 @@ class TokenServiceTest {
     TokenRequestDTO body = buildRequest(DocumentType.META);
     body.setOrganizationId(" ");
     body.setDocument(base64Of("/organizations/org-inferred/documents/doc-x"));
-    List<Token> tokens = List.of(new Token());
+    Token expected = new Token();
 
     TokenService serviceSpy = spy(tokenService);
-    doReturn(tokens).when(serviceSpy).issueTokenAndStoreDoc(body);
+    doReturn(expected).when(serviceSpy).issueTokenAndStoreDoc(body);
 
-    List<Token> result = serviceSpy.issueToken(body);
+    Token result = serviceSpy.issueToken(body);
 
-    assertThat(result).isSameAs(tokens);
+    assertThat(result).isSameAs(expected);
     assertThat(body.getOrganizationId()).isEqualTo("org-inferred");
   }
 
   @Test
-  void issueTokenAndStoreDoc_existingDocumentWithTokens_returnsTokens() {
+  void issueTokenAndStoreDoc_existingDocumentWithTokens_throwsTokenAlreadyExistsExceptionException() {
     TokenRequestDTO body = buildRequestWithBundleId(DocumentType.GRAPH, "b1");
     Organization organization = new Organization();
     organization.setOrgName("org-1");
     Document document = new Document();
     document.setIdentifier("ex:b1");
-    List<Token> tokens = List.of(new Token());
+    Token expected = new Token();
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(documentRepository.findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
@@ -283,11 +284,12 @@ class TokenServiceTest {
         eq("provn"),
         eq(DocumentType.GRAPH),
         eq(organization))).thenReturn(Optional.of(document));
-    when(tokenRepository.findByDocument(document)).thenReturn(tokens);
+    when(tokenRepository.findByDocument(document)).thenReturn(List.of(expected));
 
-    List<Token> result = tokenService.issueTokenAndStoreDoc(body);
-
-    assertThat(result).isSameAs(tokens);
+    assertThatThrownBy(() -> tokenService.issueTokenAndStoreDoc(body))
+        .isInstanceOf(TokenAlreadyExistsException.class)
+        .hasMessage("Token for Document with identifier [http://example.org/b1] already exists");
+    // .hasMessageContaining("org-1");
   }
 
   @Test
@@ -431,10 +433,10 @@ class TokenServiceTest {
     assertThat(signedJWT.getJWTClaimsSet().getIssuer()).isEqualTo(issuerId);
     assertThat(signedJWT.getJWTClaimsSet().getIssueTime()).isEqualTo(Date.from(tokenTimestamp.toInstant(ZoneOffset.UTC)));
     assertThat(signedJWT.getJWTClaimsSet().getSubject()).isEqualTo(bundleId);
-    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("documentDigest")).isEqualTo(documentDigest);
-    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hashFunction")).isEqualTo("SHA256");
-    assertThat(signedJWT.getJWTClaimsSet().getLongClaim("documentCreationTimestamp")).isEqualTo(documentTimestamp.toEpochSecond(ZoneOffset.UTC));
-    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("originatorId")).isEqualTo(originatorId);
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("doc_digest")).isEqualTo(documentDigest);
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hash_alg")).isEqualTo("SHA256");
+    assertThat(signedJWT.getJWTClaimsSet().getLongClaim("doc_iat")).isEqualTo(documentTimestamp.toEpochSecond(ZoneOffset.UTC));
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("org_id")).isEqualTo(originatorId);
 
     // check header
     assertThat(signedJWT.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.ES256);
@@ -473,23 +475,21 @@ class TokenServiceTest {
     LocalDateTime createdOn = LocalDateTime.of(2025, 1, 1, 10, 0);
     body.setCreatedOn(createdOn.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
-    List<Token> tokens = tokenService.issueTokenAndStoreDoc(body);
+    Token token = tokenService.issueTokenAndStoreDoc(body);
 
-    assertThat(tokens).hasSize(1);
-    Token token = tokens.get(0);
     Document doc = token.getDocument();
 
     SignedJWT signedJWT = SignedJWT.parse(token.getTokenValue());
     assertThat(signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()))).isTrue();
 
-    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hashFunction")).isEqualTo(HashFunction.SHA256.getValue());
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hash_alg")).isEqualTo(HashFunction.SHA256.getValue());
     assertThat(doc.getSignature()).isNull();
     assertThat(doc.getOrganization().getOrgName()).isEqualTo("org-1");
     assertThat(doc.getCreatedOn()).isEqualTo(createdOn);
     assertThat(token.getTokenValue()).matches("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$");
 
     String expectedHash = sha256Hex(Base64.getDecoder().decode(body.getDocument()));
-    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("documentDigest")).isEqualTo(expectedHash);
+    assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("doc_digest")).isEqualTo(expectedHash);
 
     boolean verified = signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()));
     assertThat(verified).isTrue();

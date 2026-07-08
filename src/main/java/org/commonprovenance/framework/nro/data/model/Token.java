@@ -21,6 +21,7 @@ public class Token {
   @JoinColumn(name = "document_id")
   private Document document;
 
+  private String type;
   @Lob
   private String tokenValue;
 
@@ -32,14 +33,6 @@ public class Token {
     this.id = id;
   }
 
-  public String getTokenValue() {
-    return tokenValue;
-  }
-
-  public void setTokenValue(String tokenValue) {
-    this.tokenValue = tokenValue;
-  }
-
   public Document getDocument() {
     return document;
   }
@@ -48,18 +41,35 @@ public class Token {
     this.document = document;
   }
 
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  public String getTokenValue() {
+    return tokenValue;
+  }
+
+  public void setTokenValue(String tokenValue) {
+    this.tokenValue = tokenValue;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof Token token))
       return false;
     return Objects.equals(id, token.id)
         && Objects.equals(document, token.document)
+        && Objects.equals(type, token.type)
         && Objects.equals(tokenValue, token.tokenValue);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, document, tokenValue);
+    return Objects.hash(id, document, type, tokenValue);
   }
 
   @Override
@@ -67,6 +77,7 @@ public class Token {
     return "Token{" +
         "id=" + id +
         ", document=" + document +
+        ", type=" + type +
         ", tokenValue='" + tokenValue + '\'' +
         '}';
   }

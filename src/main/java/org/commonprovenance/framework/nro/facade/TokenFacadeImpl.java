@@ -55,8 +55,8 @@ public class TokenFacadeImpl implements TokenFacade {
   }
 
   @Override
-  public List<TokenResponseDTO> issueToken(TokenRequestDTO body) {
-    return tokenMapper.mapToList(tokenService.issueToken(Objects.requireNonNull(body)));
+  public TokenResponseDTO issueToken(TokenRequestDTO body) {
+    return tokenMapper.mapToDTO(tokenService.issueToken(Objects.requireNonNull(body)));
   }
 
   @Override
