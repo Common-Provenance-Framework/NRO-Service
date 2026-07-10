@@ -1,27 +1,26 @@
 package org.commonprovenance.framework.nro.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.commonprovenance.framework.nro.api.Token.TokenDTO;
-import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
-import org.commonprovenance.framework.nro.facade.TokenFacade;
-import org.commonprovenance.framework.nro.rest.TokenRestController;
-import org.commonprovenance.framework.nro.utils.TestDataFactory;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+
+import org.commonprovenance.framework.nro.api.TokenResponseDTO;
+import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
+import org.commonprovenance.framework.nro.facade.TokenFacade;
+import org.commonprovenance.framework.nro.utils.TestDataFactory;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(TokenRestController.class)
 class TokenRestControllerTest {
@@ -38,7 +37,7 @@ class TokenRestControllerTest {
   @Test
   void getToken_returnsTokenList() throws Exception {
     when(tokenFacade.getToken("org-1", "doc-1", "json"))
-        .thenReturn(List.of(new TokenDTO(), new TokenDTO()));
+        .thenReturn(List.of(new TokenResponseDTO(), new TokenResponseDTO()));
 
     mockMvc.perform(get("/api/v1/organizations/org-1/tokens/doc-1/json")
         .accept(MediaType.APPLICATION_JSON))
@@ -49,7 +48,7 @@ class TokenRestControllerTest {
 
   @Test
   void getAllTokens_returnsTokenList() throws Exception {
-    when(tokenFacade.getAllTokens("org-1")).thenReturn(List.of(new TokenDTO()));
+    when(tokenFacade.getAllTokens("org-1")).thenReturn(List.of(new TokenResponseDTO()));
 
     mockMvc.perform(get("/api/v1/organizations/org-1/tokens")
         .accept(MediaType.APPLICATION_JSON))
@@ -60,7 +59,7 @@ class TokenRestControllerTest {
   @Test
   void issueToken_validRequest_returnsCreated() throws Exception {
     TokenRequestDTO body = TestDataFactory.tokenRequest();
-    when(tokenFacade.issueToken(any(TokenRequestDTO.class))).thenReturn(List.of(new TokenDTO()));
+    when(tokenFacade.issueToken(any(TokenRequestDTO.class))).thenReturn(new TokenResponseDTO());
 
     mockMvc.perform(post("/api/v1/issueToken")
         .contentType(MediaType.APPLICATION_JSON)

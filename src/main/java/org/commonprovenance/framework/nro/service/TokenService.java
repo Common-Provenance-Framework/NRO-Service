@@ -13,6 +13,7 @@ import java.security.Security;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -23,12 +24,12 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +58,7 @@ import org.commonprovenance.framework.nro.exceptions.InvalidTimestampException;
 import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
+import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
 import org.commonprovenance.framework.nro.utils.prov.ProvToolboxUtils;
 import org.openprovenance.prov.model.Bundle;
 import org.openprovenance.prov.model.StatementOrBundle;
@@ -64,7 +66,13 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 
 @Service
 public class TokenService {
@@ -121,8 +129,7 @@ public class TokenService {
   }
 
   @Transactional
-  public List<Token> issueToken(@NonNull TokenRequestDTO body) {
-    // Fields are checked in DTO using Jakarta Validation
+  public Token issueToken(@NonNull TokenRequestDTO body) {
     if (body.getOrganizationId() == null || body.getOrganizationId().isBlank()) {
       String inferred = inferOrganizationId(body);
       if (inferred != null && !inferred.isBlank()) {
@@ -147,7 +154,7 @@ public class TokenService {
         body.getDocumentType() == DocumentType.DOMAIN_SPECIFIC) {
 
       organizationRepository
-          .findById(body.getOrganizationId())
+          .findById(Objects.requireNonNull(body.getOrganizationId()))
           .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
     }
 
@@ -161,18 +168,10 @@ public class TokenService {
     return issueTokenAndStoreDoc(body);
   }
 
-  protected List<Token> issueTokenAndStoreDoc(TokenRequestDTO body) {
-    if (body.getOrganizationId() == null || body.getOrganizationId().isBlank()) {
-      String inferred = inferOrganizationId(body);
-      if (inferred != null && !inferred.isBlank()) {
-        body.setOrganizationId(inferred);
-      } else {
-        throw new InvalidRequestException("Missing organizationId");
-      }
-    }
-    // Used fully-qualified name to avoid clash with cz.muni.fi.trusted_party.data.model.Document
+  protected Token issueTokenAndStoreDoc(TokenRequestDTO body) {
     org.openprovenance.prov.model.Document provDocument = ProvToolboxUtils.parseDocument(
-        body.getDocument(), body.getDocumentFormat());
+        body.getDocument(),
+        body.getDocumentFormat());
 
     Bundle bundle = extractSingleBundle(provDocument);
     String bundleId = resolveBundleId(bundle);
@@ -184,10 +183,10 @@ public class TokenService {
     }
 
     if (body.getDocumentType() == DocumentType.META) {
-      return List.of(buildUnsignedMetaToken(body, bundleId));
+      return buildMetaToken(body, bundleId);
     }
 
-    Organization org = organizationRepository.findById(body.getOrganizationId())
+    Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
         .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
 
     Optional<Document> existingDoc = documentRepository
@@ -200,7 +199,7 @@ public class TokenService {
     if (existingDoc.isPresent()) {
       List<Token> tokens = tokenRepository.findByDocument(existingDoc.get());
       if (!tokens.isEmpty()) {
-        return tokens;
+        throw new TokenAlreadyExistsException("Token for Document with identifier [" + bundleId + "] already exists");
       }
     }
 
@@ -224,14 +223,14 @@ public class TokenService {
     doc.setSignature(body.getDocumentType() == DocumentType.GRAPH ? body.getSignature() : null);
     documentRepository.save(doc);
 
-    Token token = buildSignedToken(body, doc, bundleId);
-    tokenRepository.save(token);
-    return List.of(token);
+    Token token = buildToken(body, doc, bundleId);
+    tokenRepository.save(Objects.requireNonNull(token));
+    return token;
   }
 
   public boolean verifySignature(TokenRequestDTO body) {
     organizationRepository
-        .findById(body.getOrganizationId())
+        .findById(Objects.requireNonNull(body.getOrganizationId()))
         .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
 
     Certificate cert = certificateRepository
@@ -349,7 +348,7 @@ public class TokenService {
     // TODO: Implement real subgraph validation - was not implemented in Python version
   }
 
-  private Token buildUnsignedMetaToken(TokenRequestDTO body, String bundleId) {
+  private Token buildMetaToken(TokenRequestDTO body, String bundleId) {
     Document doc = new Document();
     doc.setIdentifier(bundleId);
     doc.setDocFormat(body.getDocumentFormat());
@@ -362,16 +361,16 @@ public class TokenService {
     org.setOrgName(body.getOrganizationId());
     doc.setOrganization(org);
 
-    Token token = buildSignedToken(body, doc, bundleId);
+    Token token = buildToken(body, doc, bundleId);
     token.setDocument(doc);
     return token;
   }
 
-  private Token buildSignedToken(TokenRequestDTO body, Document doc, String bundleId) {
+  private Token buildToken(TokenRequestDTO body, Document doc, String bundleId) {
     LocalDateTime tokenTimestamp = LocalDateTime.now();
     String documentDigest = sha256Hex(Base64.getDecoder().decode(body.getDocument()));
 
-    String signature = signTokenData(
+    String tokenValue = buildJwtToken(
         body.getOrganizationId(),
         tokenTimestamp,
         parseCreatedOn(body.getCreatedOn()),
@@ -380,65 +379,56 @@ public class TokenService {
 
     Token token = new Token();
     token.setDocument(doc);
-    token.setHash(documentDigest);
-    token.setHashFunction(HashFunction.SHA256);
-    token.setCreatedOn(tokenTimestamp);
-    token.setSignature(signature);
+    token.setType(body.getDocumentType().name());
+    token.setTokenValue(tokenValue);
     return token;
   }
 
-  private String signTokenData(String originatorId,
+  private String buildJwtToken(String originatorId,
       LocalDateTime tokenTimestamp,
       LocalDateTime documentCreationTimestamp,
       String documentDigest,
       String bundleId) {
     try {
-      Map<String, Object> additionalData = new LinkedHashMap<>();
-      additionalData.put("bundle", bundleId);
-      additionalData.put("hashFunction", "SHA256");
-      additionalData.put("trustedPartyUri", appProperties.getFqdn());
-      additionalData.put("trustedPartyCertificate", appProperties.getCertificate());
 
-      Map<String, Object> data = new LinkedHashMap<>();
-      data.put("originatorId", originatorId);
-      data.put("authorityId", appProperties.getId());
-      data.put("tokenTimestamp", tokenTimestamp);
-      data.put("documentCreationTimestamp", documentCreationTimestamp);
-      data.put("documentDigest", documentDigest);
-      data.put("additionalData", additionalData);
+      JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+          .issuer(appProperties.getId()) // authorityId
+          .issueTime(Date.from(tokenTimestamp.toInstant(ZoneOffset.UTC))) // tokenTimestamp
+          .subject(bundleId) // bundle
+          .claim("doc_digest", documentDigest)
+          .claim("hash_alg", HashFunction.SHA256.getValue())
+          .claim("doc_iat", Date.from(documentCreationTimestamp.toInstant(ZoneOffset.UTC)))
+          .claim("org_id", originatorId)
+          .build();
 
-      byte[] canonicalBytes = canonicalizeJson(data);
+      X509Certificate clientCert = parsePemCertificate(appProperties.getCertificate());
 
-      ensureBouncyCastleProvider();
+      List<com.nimbusds.jose.util.Base64> x5c = List.of(com.nimbusds.jose.util.Base64.encode(clientCert.getEncoded()));
+      JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+          .type(JOSEObjectType.JWT)
+          .x509CertChain(x5c) // trustedPartyCertificate
+          .customParam("trustedPartyUri", appProperties.getFqdn()) // trustedPartyCertificate
+          .build();
+
       PrivateKey privateKey = loadPrivateKey();
-      Signature signer = Security.getProvider("BC") != null
-          ? Signature.getInstance("SHA256withECDSA", "BC")
-          : Signature.getInstance("SHA256withECDSA");
-      signer.initSign(privateKey);
-      signer.update(canonicalBytes);
-      return Base64.getEncoder().encodeToString(signer.sign());
-    } catch (Exception e) {
-      throw new SignatureVerificationException("Failed to sign token data", e);
-    }
-  }
-
-  private byte[] canonicalizeJson(Map<String, Object> data) throws Exception {
-    ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
-    Object sorted = sortRecursively(data);
-    String json = mapper.writeValueAsString(sorted);
-    return json.getBytes(StandardCharsets.UTF_8);
-  }
-
-  private Object sortRecursively(Object value) {
-    if (value instanceof Map<?, ?> map) {
-      TreeMap<String, Object> sorted = new TreeMap<>();
-      for (Map.Entry<?, ?> entry : map.entrySet()) {
-        String key = String.valueOf(entry.getKey());
-        sorted.put(key, sortRecursively(entry.getValue()));
+      if (!(privateKey instanceof ECPrivateKey ecPrivateKey)) {
+        throw new IllegalArgumentException("Expected an EC private key for JWT signing");
       }
-      return sorted;
+
+      JWSSigner signer = new ECDSASigner(ecPrivateKey);
+      SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+      signedJWT.sign(signer);
+      return signedJWT.serialize();
+    } catch (Exception e) {
+      throw new SignatureVerificationException("Failed to build JWT token", e);
     }
-    return value;
+  }
+
+  private X509Certificate parsePemCertificate(String pem) throws Exception {
+    CertificateFactory cf = CertificateFactory.getInstance("X.509");
+    try (ByteArrayInputStream in = new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII))) {
+      return (X509Certificate) cf.generateCertificate(in);
+    }
   }
 
   private PrivateKey loadPrivateKey() throws Exception {

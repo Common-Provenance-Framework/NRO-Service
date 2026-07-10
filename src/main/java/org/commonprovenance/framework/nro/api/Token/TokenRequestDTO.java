@@ -18,11 +18,13 @@ public class TokenRequestDTO {
   @NotBlank(message = "document is mandatory")
   @JsonAlias({ "document", "graph" })
   @JsonProperty("document")
-  private String Document;
+  private String document;
 
   @NotBlank(message = "documentFormat is mandatory")
   @JsonAlias({ "documentFormat", "doc_format" })
   private String documentFormat;
+
+  private String signature;
 
   @NotNull(message = "Empty or incorrect type, must be one of [subgraph|meta|graph]!")
   @JsonAlias({ "type", "documentType" })
@@ -30,8 +32,6 @@ public class TokenRequestDTO {
 
   @NotBlank(message = "createdOn timestamp is mandatory")
   private String createdOn;
-
-  private String signature;
 
   public TokenRequestDTO() {
   }
@@ -45,11 +45,11 @@ public class TokenRequestDTO {
   }
 
   public String getDocument() {
-    return Document;
+    return document;
   }
 
   public void setDocument(String document) {
-    Document = document;
+    this.document = document;
   }
 
   public String getCreatedOn() {

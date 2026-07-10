@@ -12,6 +12,7 @@ import org.commonprovenance.framework.nro.exceptions.OrganizationAlreadyExistsEx
 import org.commonprovenance.framework.nro.exceptions.OrganizationIdMismatchException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
+import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,8 @@ public class CustomRestGlobalExceptionHandling {
   private static UrlPathHelper URL_PATH_HELPER = new UrlPathHelper();
 
   @ExceptionHandler({
-      CertificateNotFoundException.class, DocumentNotFoundException.class,
+      CertificateNotFoundException.class,
+      DocumentNotFoundException.class,
       OrganizationNotFoundException.class
   })
   public ResponseEntity<ApiError> handleResoursceNotFound(
@@ -44,7 +46,8 @@ public class CustomRestGlobalExceptionHandling {
   }
 
   @ExceptionHandler({
-      InvalidTimestampException.class, MissingSignatureException.class,
+      InvalidTimestampException.class,
+      MissingSignatureException.class,
       OrganizationIdMismatchException.class,
       IllegalArgumentException.class
   })
@@ -61,7 +64,8 @@ public class CustomRestGlobalExceptionHandling {
   }
 
   @ExceptionHandler({
-      OrganizationAlreadyExistsException.class
+      OrganizationAlreadyExistsException.class,
+      TokenAlreadyExistsException.class
   })
   public ResponseEntity<ApiError> handleConflict(
       final Exception ex,
@@ -76,7 +80,8 @@ public class CustomRestGlobalExceptionHandling {
   }
 
   @ExceptionHandler({
-      CertificateVerificationException.class, SignatureVerificationException.class
+      CertificateVerificationException.class,
+      SignatureVerificationException.class
   })
   public ResponseEntity<ApiError> handleUnauthorized(
       final Exception ex,

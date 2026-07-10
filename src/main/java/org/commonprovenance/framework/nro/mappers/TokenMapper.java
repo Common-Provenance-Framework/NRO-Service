@@ -1,40 +1,24 @@
 package org.commonprovenance.framework.nro.mappers;
 
-import org.commonprovenance.framework.nro.api.Token.TokenDTO;
-import org.commonprovenance.framework.nro.config.AppProperties;
+import java.util.List;
+
+import org.commonprovenance.framework.nro.api.TokenResponseDTO;
 import org.commonprovenance.framework.nro.data.model.Token;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class TokenMapper {
 
-  public TokenDTO mapToDTO(Token token, AppProperties appProperties) {
-    TokenDTO.Data.AdditionalData additionalData = new TokenDTO.Data.AdditionalData();
-    additionalData.setBundle(token.getDocument().getIdentifier());
-    additionalData.setHashFunction("SHA256");
-    additionalData.setTrustedPartyUri(appProperties.getFqdn());
-    additionalData.setTrustedPartyCertificate(appProperties.getCertificate());
-
-    TokenDTO.Data data = new TokenDTO.Data();
-    data.setOriginatorId(token.getDocument().getOrganization().getOrgName());
-    data.setAuthorityId(appProperties.getId());
-    data.setTokenTimestamp(token.getCreatedOn());
-    data.setDocumentCreationTimestamp(token.getDocument().getCreatedOn());
-    data.setDocumentDigest(token.getHash());
-    data.setAdditionalData(additionalData);
-
-    TokenDTO tokenDTO = new TokenDTO();
-    tokenDTO.setData(data);
-    tokenDTO.setSignature(token.getSignature());
-    return tokenDTO;
+  public TokenResponseDTO mapToDTO(Token token) {
+    TokenResponseDTO tokenResponseDTO = new TokenResponseDTO();
+    tokenResponseDTO.setJwt(token.getTokenValue());
+    return tokenResponseDTO;
   }
 
-  public List<TokenDTO> mapToList(List<Token> tokens, AppProperties appProperties) {
+  public List<TokenResponseDTO> mapToList(List<Token> tokens) {
     return tokens
         .stream()
-        .map(token -> mapToDTO(token, appProperties))
+        .map(this::mapToDTO)
         .toList();
   }
 }

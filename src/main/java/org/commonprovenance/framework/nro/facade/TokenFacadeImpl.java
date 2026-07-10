@@ -3,8 +3,9 @@ package org.commonprovenance.framework.nro.facade;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import org.commonprovenance.framework.nro.api.Token.TokenDTO;
+import org.commonprovenance.framework.nro.api.TokenResponseDTO;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.model.Document;
@@ -27,25 +28,26 @@ public class TokenFacadeImpl implements TokenFacade {
   }
 
   @Override
-  public List<TokenDTO> getToken(String organizationId, String documentId, String documentFormat) {
-    List<Token> tokens = tokenService.getToken(organizationId, documentId, documentFormat);
+  public List<TokenResponseDTO> getToken(String organizationId, String documentId, String documentFormat) {
+    List<Token> tokens = tokenService.getToken(
+        Objects.requireNonNull(organizationId),
+        documentId,
+        documentFormat);
 
-    return tokenMapper.mapToList(tokens, appProperties);
+    return tokenMapper.mapToList(tokens);
   }
 
   @Override
-  public List<TokenDTO> getAllTokens(String organizationId) {
-    Map<Document, List<Token>> tokensByDoc = tokenService.getAllTokens(organizationId);
+  public List<TokenResponseDTO> getAllTokens(String organizationId) {
+    Map<Document, List<Token>> tokensByDoc = tokenService.getAllTokens(Objects.requireNonNull(organizationId));
 
-    List<TokenDTO> result = new ArrayList<>();
+    List<TokenResponseDTO> result = new ArrayList<>();
 
-    // Todo: check if I need document
     for (Map.Entry<Document, List<Token>> entry : tokensByDoc.entrySet()) {
-      Document document = entry.getKey();
       List<Token> tokens = entry.getValue();
 
       for (Token token : tokens) {
-        TokenDTO dto = tokenMapper.mapToDTO(token, appProperties);
+        TokenResponseDTO dto = tokenMapper.mapToDTO(token);
         result.add(dto);
       }
     }
@@ -53,8 +55,8 @@ public class TokenFacadeImpl implements TokenFacade {
   }
 
   @Override
-  public List<TokenDTO> issueToken(TokenRequestDTO body) {
-    return tokenMapper.mapToList(tokenService.issueToken(body), appProperties);
+  public TokenResponseDTO issueToken(TokenRequestDTO body) {
+    return tokenMapper.mapToDTO(tokenService.issueToken(Objects.requireNonNull(body)));
   }
 
   @Override
