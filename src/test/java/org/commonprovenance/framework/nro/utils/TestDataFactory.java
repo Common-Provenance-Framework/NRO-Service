@@ -1,12 +1,10 @@
 package org.commonprovenance.framework.nro.utils;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.commonprovenance.framework.nro.api.Organization.OrganizationDTO;
 import org.commonprovenance.framework.nro.api.Organization.StoreCertOrganizationDTO;
-import org.commonprovenance.framework.nro.api.Token.TokenDTO;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.data.enums.DocumentType;
 
@@ -40,11 +38,4 @@ public final class TestDataFactory {
     return dto;
   }
 
-  public static List<TokenDTO> tokenDtoList(int size) {
-    List<TokenDTO> result = new ArrayList<>();
-    for (int i = 0; i < size; i++) {
-      result.add(new TokenDTO());
-    }
-    return result;
-  }
 }
