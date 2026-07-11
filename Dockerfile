@@ -1,19 +1,15 @@
-# Build
-FROM maven:3.9-eclipse-temurin-25 AS build
+FROM eclipse-temurin:25-jdk AS build
 
 WORKDIR /workspace
 
-COPY .mvn .mvn
-COPY mvnw .
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+COPY src/ src/
+
 RUN chmod +x mvnw
+RUN ./mvnw -B package -DskipTests
 
-COPY pom.xml ./
-COPY src src
-
-RUN ./mvnw -B -DskipTests package
-
-# Run
-FROM eclipse-temurin:25-jre AS runtime
+FROM eclipse-temurin:25-jre-alpine-3.21 AS runtime
 
 WORKDIR /app
 
