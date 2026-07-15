@@ -34,7 +34,7 @@ public final class TestDataFactory {
 
   public static OrganizationDTO organizationDto(String orgId) {
     OrganizationDTO dto = new OrganizationDTO();
-    dto.setOrganizationId(orgId);
+    dto.setId(orgId);
     return dto;
   }
 
