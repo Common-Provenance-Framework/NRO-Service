@@ -34,7 +34,7 @@ class OrganizationFacadeTest {
   @Test
   void getAllOrganizations_returnsMappedList() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     OrganizationAndCertificates orgCert = new OrganizationAndCertificates(organization, null, null);
     OrganizationDTO dto = TestDataFactory.organizationDto("org-1");
 
@@ -49,7 +49,7 @@ class OrganizationFacadeTest {
   @Test
   void getOrganization_returnsMappedOrganization() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     OrganizationAndCertificates orgCert = new OrganizationAndCertificates(organization, null, List.of());
     OrganizationDTO dto = TestDataFactory.organizationDto("org-1");
 
@@ -65,7 +65,7 @@ class OrganizationFacadeTest {
   @Test
   void retrieveCertificates_includesRevoked() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     OrganizationAndCertificates orgCert = new OrganizationAndCertificates(organization, null, List.of());
     OrganizationDTO dto = TestDataFactory.organizationDto("org-1");
 

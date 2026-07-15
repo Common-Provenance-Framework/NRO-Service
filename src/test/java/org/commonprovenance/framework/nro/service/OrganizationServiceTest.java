@@ -56,16 +56,16 @@ class OrganizationServiceTest {
   @Test
   void getAllOrganizations_existingOrganizations_returnsActiveCertificates() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Certificate activeCert = new Certificate();
     activeCert.setCertDigest("digest-1");
 
     when(organizationRepository.findAll()).thenReturn(List.of(organization));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
         true)).thenReturn(List.of());
-    when(certificateRepository.findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
         false)).thenReturn(activeCert);
@@ -81,18 +81,18 @@ class OrganizationServiceTest {
   @Test
   void getOrganization_existingOrganization_returnsCertificates() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Certificate activeCert = new Certificate();
     activeCert.setCertDigest("digest-1");
     Certificate revokedCert = new Certificate();
     revokedCert.setCertDigest("digest-2");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
         true)).thenReturn(List.of(revokedCert));
-    when(certificateRepository.findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
         false)).thenReturn(activeCert);
@@ -126,7 +126,7 @@ class OrganizationServiceTest {
   void storeCertToOrganization_existingOrganization_throwsOrganizationAlreadyExistsException() {
     StoreCertOrganizationDTO body = buildStoreDto("org-1");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
 
@@ -207,7 +207,7 @@ class OrganizationServiceTest {
   void updateCertificates_chainFail_throwsCertificateVerificationException() {
     StoreCertOrganizationDTO body = buildStoreDto("org-1");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
@@ -227,7 +227,7 @@ class OrganizationServiceTest {
   void updateCertificates_validRequest_revokesAndStoresCertificates() {
     StoreCertOrganizationDTO body = buildStoreDto("org-1");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     Certificate existingClient = new Certificate();
     existingClient.setCertificateType(CertificateType.CLIENT);
@@ -241,9 +241,9 @@ class OrganizationServiceTest {
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.CLIENT, false)).thenReturn(List.of(existingClient));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of(existingIntermediate));
     when(certificateRepository.findByCertDigest("digest-int-1")).thenReturn(Optional.empty());
 
@@ -273,7 +273,7 @@ class OrganizationServiceTest {
   void updateCertificates_existingIntermediate_unrevokesExistingCertificate() {
     StoreCertOrganizationDTO body = buildStoreDto("org-1");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     Certificate existingClient = new Certificate();
     existingClient.setCertificateType(CertificateType.CLIENT);
@@ -288,9 +288,9 @@ class OrganizationServiceTest {
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.CLIENT, false)).thenReturn(List.of(existingClient));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of());
     when(certificateRepository.findByCertDigest("digest-int-1"))
         .thenReturn(Optional.of(existingIntermediate));
@@ -315,7 +315,7 @@ class OrganizationServiceTest {
   void updateCertificates_alreadyRevokedCertificates_remainRevoked() {
     StoreCertOrganizationDTO body = buildStoreDto("org-1");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     Certificate revokedClient = new Certificate();
     revokedClient.setCertificateType(CertificateType.CLIENT);
@@ -327,9 +327,9 @@ class OrganizationServiceTest {
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.CLIENT, false)).thenReturn(List.of());
-    when(certificateRepository.findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of());
     when(certificateRepository.findByCertDigest("digest-int-1")).thenReturn(Optional.empty());
 

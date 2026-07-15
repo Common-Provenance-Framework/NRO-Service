@@ -204,7 +204,7 @@ public class TokenService {
     }
 
     Certificate cert = certificateRepository
-        .findFirstByOrganizationOrgNameAndIsRevoked(
+        .findFirstByOrganizationIdAndIsRevoked(
             body.getOrganizationId(),
             false);
 
@@ -234,7 +234,7 @@ public class TokenService {
         .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
 
     Certificate cert = certificateRepository
-        .findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+        .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
             body.getOrganizationId(),
             CertificateType.CLIENT,
             false);
@@ -358,7 +358,7 @@ public class TokenService {
     doc.setSignature(null);
 
     Organization org = new Organization();
-    org.setOrgName(body.getOrganizationId());
+    org.setId(body.getOrganizationId());
     doc.setOrganization(org);
 
     Token token = buildToken(body, doc, bundleId);

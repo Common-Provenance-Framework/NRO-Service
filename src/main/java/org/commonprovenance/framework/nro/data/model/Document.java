@@ -21,7 +21,7 @@ public class Document {
   private Certificate certificate;
 
   @ManyToOne
-  @JoinColumn(name = "organization", referencedColumnName = "orgName")
+  @JoinColumn(name = "organization", referencedColumnName = "id")
   private Organization organization;
 
   @Enumerated(EnumType.STRING)

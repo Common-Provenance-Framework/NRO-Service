@@ -12,7 +12,7 @@ public class DocumentMapper {
     dto.setIdentifier(document.getIdentifier());
     dto.setDocumentFormat(document.getDocFormat());
     dto.setCertDigest(document.getCertificate().getCertDigest());
-    dto.setOrganizationId(document.getOrganization().getOrgName());
+    dto.setOrganizationId(document.getOrganization().getId());
     dto.setDocumentType(document.getDocumentType());
     dto.setDocumentText(document.getDocumentText());
     dto.setCreatedOn(document.getCreatedOn());

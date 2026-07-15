@@ -178,16 +178,16 @@ class DocumentRepositoryTest {
   @Test
   void findByOrganization_nonExistingOrganization_returnsEmptyList() {
     Organization organization = new Organization();
-    organization.setOrgName("org-missing");
+    organization.setId("org-missing");
 
     List<Document> result = documentRepository.findByOrganization(organization);
 
     assertThat(result).isEmpty();
   }
 
-  private Organization saveOrganization(String orgName) {
+  private Organization saveOrganization(String id) {
     Organization organization = new Organization();
-    organization.setOrgName(orgName);
+    organization.setId(id);
     entityManager.persist(organization);
     return organization;
   }

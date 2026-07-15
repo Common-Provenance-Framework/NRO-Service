@@ -85,7 +85,7 @@ class TokenRepositoryTest {
 
   private Document saveDocument(String identifier) {
     Organization organization = new Organization();
-    organization.setOrgName("org-" + identifier);
+    organization.setId("org-" + identifier);
     entityManager.persist(organization);
 
     Certificate certificate = new Certificate();

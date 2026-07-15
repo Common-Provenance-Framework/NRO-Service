@@ -33,7 +33,7 @@ class DocumentFacadeTest {
   @Test
   void getDocument_existingDocument_returnsMappedDto() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Certificate certificate = new Certificate();
     certificate.setCertDigest("cert-1");
     Document document = new Document();
