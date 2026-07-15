@@ -45,7 +45,7 @@ public class OrganizationService {
     List<OrganizationAndCertificates> result = new ArrayList<>();
 
     for (Organization org : organizations) {
-      SortedCertificates sorted = getSortedCertificates(org.getOrgName());
+      SortedCertificates sorted = getSortedCertificates(org.getId());
 
       result.add(new OrganizationAndCertificates(
           org,
@@ -126,7 +126,7 @@ public class OrganizationService {
   @Transactional
   protected void storeOrganizationAndCerts(String organizationName, String clientCertificate, List<String> intermediateCertificates) {
     Organization org = new Organization();
-    org.setOrgName(organizationName);
+    org.setId(organizationName);
     organizationRepository.save(org);
 
     Certificate clientCert = new Certificate();
@@ -193,10 +193,10 @@ public class OrganizationService {
   @Transactional
   protected void revokeAllStoredCertificates(String organizationName) {
     List<Certificate> clientCertificates = certificateRepository
-        .findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(organizationName, CertificateType.CLIENT, false);
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked(organizationName, CertificateType.CLIENT, false);
 
     List<Certificate> intermediateCertificates = certificateRepository
-        .findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(organizationName, CertificateType.INTERMEDIATE, false);
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked(organizationName, CertificateType.INTERMEDIATE, false);
 
     for (Certificate certificate : clientCertificates) {
       certificate.setIsRevoked(true);
@@ -212,13 +212,13 @@ public class OrganizationService {
   @Transactional(readOnly = true)
   private SortedCertificates getSortedCertificates(String organizationName) {
     List<Certificate> revokedCerts = certificateRepository
-        .findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked(
             organizationName,
             CertificateType.CLIENT,
             true);
 
     Certificate activeCert = certificateRepository
-        .findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+        .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
             organizationName,
             CertificateType.CLIENT,
             false);

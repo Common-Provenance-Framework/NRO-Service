@@ -13,7 +13,7 @@ public class OrganizationMapper {
 
   public OrganizationDTO mapToOrganizationDTO(OrganizationAndCertificates orgCertEntity, boolean includeRevoked) {
     OrganizationDTO organizationResponseDTO = new OrganizationDTO();
-    organizationResponseDTO.setOrganizationId(orgCertEntity.organization().getOrgName());
+    organizationResponseDTO.setOrganizationId(orgCertEntity.organization().getId());
     Certificate activeCertificate = orgCertEntity.activeCertificate();
     organizationResponseDTO.setClientCertificate(activeCertificate != null ? activeCertificate.getCert() : null);
 

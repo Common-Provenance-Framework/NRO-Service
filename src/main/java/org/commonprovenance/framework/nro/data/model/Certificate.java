@@ -26,7 +26,7 @@ public class Certificate {
   private LocalDateTime received_on;
 
   @ManyToOne
-  @JoinColumn(name = "organization", referencedColumnName = "orgName")
+  @JoinColumn(name = "organization", referencedColumnName = "id")
   private Organization organization;
 
   public String getCertDigest() {

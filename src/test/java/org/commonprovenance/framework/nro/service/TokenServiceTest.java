@@ -101,7 +101,7 @@ class TokenServiceTest {
   @Test
   void getToken_existingDocument_returnsTokens() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Document document = new Document();
     document.setIdentifier("doc-1");
 
@@ -132,7 +132,7 @@ class TokenServiceTest {
   @Test
   void getToken_missingDocument_throwsDocumentNotFoundException() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(documentRepository.findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
@@ -149,7 +149,7 @@ class TokenServiceTest {
   @Test
   void getAllTokens_existingOrganization_returnsMap() {
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Document documentA = new Document();
     documentA.setIdentifier("doc-a");
     Document documentB = new Document();
@@ -224,7 +224,7 @@ class TokenServiceTest {
   void issueToken_invalidSignature_throwsSignatureVerificationException() {
     TokenRequestDTO body = buildRequest(DocumentType.GRAPH);
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
 
@@ -239,7 +239,7 @@ class TokenServiceTest {
   void issueToken_validRequest_callsIssueTokenAndStoreDoc() {
     TokenRequestDTO body = buildRequest(DocumentType.GRAPH);
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Token expected = new Token();
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
@@ -273,7 +273,7 @@ class TokenServiceTest {
   void issueTokenAndStoreDoc_existingDocumentWithTokens_throwsTokenAlreadyExistsExceptionException() {
     TokenRequestDTO body = buildRequestWithBundleId(DocumentType.GRAPH, "b1");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     Document document = new Document();
     document.setIdentifier("ex:b1");
     Token expected = new Token();
@@ -296,7 +296,7 @@ class TokenServiceTest {
   void issueTokenAndStoreDoc_missingCertificate_throwsCertificateNotFoundException() {
     TokenRequestDTO body = buildRequestWithBundleId(DocumentType.GRAPH, "b2");
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(documentRepository.findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
@@ -304,7 +304,7 @@ class TokenServiceTest {
         eq("provn"),
         eq(DocumentType.GRAPH),
         eq(organization))).thenReturn(Optional.empty());
-    when(certificateRepository.findFirstByOrganizationOrgNameAndIsRevoked("org-1", false))
+    when(certificateRepository.findFirstByOrganizationIdAndIsRevoked("org-1", false))
         .thenReturn(null);
 
     assertThatThrownBy(() -> tokenService.issueTokenAndStoreDoc(body))
@@ -326,10 +326,10 @@ class TokenServiceTest {
   void verifySignature_missingCertificate_throwsCertificateNotFoundException() {
     TokenRequestDTO body = buildRequest(DocumentType.GRAPH);
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(certificateRepository.findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
         false)).thenReturn(null);
@@ -343,12 +343,12 @@ class TokenServiceTest {
   void verifySignature_invalidCertificate_throwsSignatureVerificationException() {
     TokenRequestDTO body = buildRequest(DocumentType.GRAPH);
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     org.commonprovenance.framework.nro.data.model.Certificate certificate = new org.commonprovenance.framework.nro.data.model.Certificate();
     certificate.setCert("not-a-certificate");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(certificateRepository.findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
         false)).thenReturn(certificate);
@@ -365,7 +365,7 @@ class TokenServiceTest {
     String certPem = toPem(x509);
 
     Organization organization = new Organization();
-    organization.setOrgName("org-1");
+    organization.setId("org-1");
     org.commonprovenance.framework.nro.data.model.Certificate certificate = new org.commonprovenance.framework.nro.data.model.Certificate();
     certificate.setCert(certPem);
 
@@ -382,7 +382,7 @@ class TokenServiceTest {
     body.setSignature(signatureB64);
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(certificateRepository.findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
+    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
         false)).thenReturn(certificate);
@@ -484,7 +484,7 @@ class TokenServiceTest {
 
     assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hash_alg")).isEqualTo(HashFunction.SHA256.getValue());
     assertThat(doc.getSignature()).isNull();
-    assertThat(doc.getOrganization().getOrgName()).isEqualTo("org-1");
+    assertThat(doc.getOrganization().getId()).isEqualTo("org-1");
     assertThat(doc.getCreatedOn()).isEqualTo(createdOn);
     assertThat(token.getTokenValue()).matches("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$");
 
