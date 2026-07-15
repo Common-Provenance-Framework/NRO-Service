@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class TokenRequestDTO {
   @NotBlank(message = "organizationId is mandatory")
-  @JsonAlias({ "organizationId", "organizationName", "originatorId" })
+  @JsonAlias({ "organizationId", "originatorId" })
   @JsonProperty("organizationId")
   private String organizationId;
 

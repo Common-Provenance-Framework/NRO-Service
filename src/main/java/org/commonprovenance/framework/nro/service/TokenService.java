@@ -96,27 +96,27 @@ public class TokenService {
   }
 
   public List<Token> getToken(
-      @NonNull String organizationName,
+      @NonNull String organizationId,
       String documentId,
       String documentFormat) {
     Organization organization = organizationRepository
-        .findById(organizationName)
-        .orElseThrow(() -> new OrganizationNotFoundException(organizationName));
+        .findById(organizationId)
+        .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
 
     Document doc = documentRepository
         .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(documentId, documentFormat, DocumentType.GRAPH, organization)
         .orElseThrow(() -> new DocumentNotFoundException(
             "No document with id " + documentId
                 + " in format " + documentFormat
-                + "exists for organization " + organizationName));
+                + "exists for organization " + organizationId));
 
     return tokenRepository.findByDocument(doc);
   }
 
-  public Map<Document, List<Token>> getAllTokens(@NonNull String organizationName) {
+  public Map<Document, List<Token>> getAllTokens(@NonNull String organizationId) {
     Organization organization = organizationRepository
-        .findById(organizationName)
-        .orElseThrow(() -> new OrganizationNotFoundException(organizationName));
+        .findById(organizationId)
+        .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
     List<Document> docs = documentRepository.findByOrganization(organization);
 
     Map<Document, List<Token>> tokensByDocument = new HashMap<>();
