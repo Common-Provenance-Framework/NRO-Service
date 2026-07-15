@@ -21,18 +21,18 @@ public class DocumentService {
   }
 
   public Document getDocument(
-      @NonNull String organizationName,
+      @NonNull String organizationId,
       String documentId,
       String documentFormat) {
     Organization organization = organizationRepository
-        .findById(organizationName)
-        .orElseThrow(() -> new OrganizationNotFoundException(organizationName));
+        .findById(organizationId)
+        .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
 
     return documentRepository
         .findByIdentifierAndDocFormatAndOrganization(documentId, documentFormat, organization)
         .orElseThrow(() -> new DocumentNotFoundException(
             "No document with id " + documentId
                 + " in format " + documentFormat
-                + "exists for organization " + organizationName));
+                + "exists for organization " + organizationId));
   }
 }

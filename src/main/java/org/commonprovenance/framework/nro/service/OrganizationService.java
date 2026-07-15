@@ -60,12 +60,12 @@ public class OrganizationService {
   // This work also for getAllCertificates
   @Transactional(readOnly = true)
   public OrganizationAndCertificates getOrganization(
-      @NonNull String organizationName) {
+      @NonNull String id) {
     Organization organization = organizationRepository
-        .findById(organizationName)
-        .orElseThrow(() -> new OrganizationNotFoundException(organizationName));
+        .findById(id)
+        .orElseThrow(() -> new OrganizationNotFoundException(id));
 
-    SortedCertificates sortedCertificates = getSortedCertificates(organizationName);
+    SortedCertificates sortedCertificates = getSortedCertificates(id);
 
     return new OrganizationAndCertificates(
         organization,
@@ -75,17 +75,17 @@ public class OrganizationService {
 
   @Transactional
   public void updateCertificates(
-      @NonNull String organizationName,
+      @NonNull String id,
       StoreCertOrganizationDTO body) {
     // Checks of request body are done in Controller using Jakarta validation
 
-    if (!Objects.equals(organizationName, body.getOrganizationId())) {
-      throw new OrganizationIdMismatchException(organizationName);
+    if (!Objects.equals(id, body.getOrganizationId())) {
+      throw new OrganizationIdMismatchException(id);
     }
 
     organizationRepository
-        .findById(organizationName)
-        .orElseThrow(() -> new OrganizationNotFoundException(organizationName));
+        .findById(id)
+        .orElseThrow(() -> new OrganizationNotFoundException(id));
 
     if (!TrustedPartyUtils.verifyChainOfTrust(
         body.getClientCertificate(),
@@ -94,23 +94,23 @@ public class OrganizationService {
       throw new CertificateVerificationException("Could not verify the chain of trust for the provided certificates");
     }
 
-    revokeAndUpdateCertifacates(organizationName, body.getClientCertificate(), body.getIntermediateCertificates());
+    revokeAndUpdateCertifacates(id, body.getClientCertificate(), body.getIntermediateCertificates());
   }
 
   @Transactional
   public void storeCertToOrganization(
-      @NonNull String organizationName,
+      @NonNull String id,
       StoreCertOrganizationDTO body) {
     // Checks of request body are done in Controller using Jakarta validation
 
-    if (!Objects.equals(organizationName, body.getOrganizationId())) {
-      throw new OrganizationIdMismatchException(organizationName);
+    if (!Objects.equals(id, body.getOrganizationId())) {
+      throw new OrganizationIdMismatchException(id);
     }
 
-    organizationRepository.findById(organizationName)
+    organizationRepository.findById(id)
         .ifPresent(org -> {
           throw new OrganizationAlreadyExistsException(
-              "Organization with id [" + organizationName + "] already exists");
+              "Organization with id [" + id + "] already exists");
         });
 
     if (!TrustedPartyUtils.verifyChainOfTrust(
@@ -120,13 +120,13 @@ public class OrganizationService {
       throw new CertificateVerificationException("Could not verify the chain of trust for the provided certificates");
     }
 
-    storeOrganizationAndCerts(organizationName, body.getClientCertificate(), body.getIntermediateCertificates());
+    storeOrganizationAndCerts(id, body.getClientCertificate(), body.getIntermediateCertificates());
   }
 
   @Transactional
-  protected void storeOrganizationAndCerts(String organizationName, String clientCertificate, List<String> intermediateCertificates) {
+  protected void storeOrganizationAndCerts(String id, String clientCertificate, List<String> intermediateCertificates) {
     Organization org = new Organization();
-    org.setId(organizationName);
+    org.setId(id);
     organizationRepository.save(org);
 
     Certificate clientCert = new Certificate();
@@ -152,12 +152,12 @@ public class OrganizationService {
 
   @Transactional
   protected void revokeAndUpdateCertifacates(
-      @NonNull String organizationName,
+      @NonNull String id,
       String clientCertificate,
       List<String> intermediateCertificates) {
-    revokeAllStoredCertificates(organizationName);
+    revokeAllStoredCertificates(id);
 
-    Organization org = organizationRepository.findById(organizationName).orElseThrow(() -> new OrganizationNotFoundException(organizationName));
+    Organization org = organizationRepository.findById(id).orElseThrow(() -> new OrganizationNotFoundException(id));
     Certificate clientCert = new Certificate();
     clientCert.setCertDigest(TrustedPartyUtils.computeCertificateDigest(clientCertificate));
     clientCert.setCert(clientCertificate);
@@ -191,12 +191,12 @@ public class OrganizationService {
   }
 
   @Transactional
-  protected void revokeAllStoredCertificates(String organizationName) {
+  protected void revokeAllStoredCertificates(String id) {
     List<Certificate> clientCertificates = certificateRepository
-        .findByOrganizationIdAndCertificateTypeAndIsRevoked(organizationName, CertificateType.CLIENT, false);
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.CLIENT, false);
 
     List<Certificate> intermediateCertificates = certificateRepository
-        .findByOrganizationIdAndCertificateTypeAndIsRevoked(organizationName, CertificateType.INTERMEDIATE, false);
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.INTERMEDIATE, false);
 
     for (Certificate certificate : clientCertificates) {
       certificate.setIsRevoked(true);
@@ -210,16 +210,16 @@ public class OrganizationService {
   }
 
   @Transactional(readOnly = true)
-  private SortedCertificates getSortedCertificates(String organizationName) {
+  private SortedCertificates getSortedCertificates(String id) {
     List<Certificate> revokedCerts = certificateRepository
         .findByOrganizationIdAndCertificateTypeAndIsRevoked(
-            organizationName,
+            id,
             CertificateType.CLIENT,
             true);
 
     Certificate activeCert = certificateRepository
         .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
-            organizationName,
+            id,
             CertificateType.CLIENT,
             false);
 
