@@ -53,9 +53,11 @@ class TokenFacadeTest {
   void getAllTokens_returnsFlattenedList() {
     Document document = new Document();
     Token tokenA = new Token();
-    tokenA.setTokenValue("jwt_A");
+    tokenA.setJwt("jwt_A");
     Token tokenB = new Token();
-    tokenB.setTokenValue("jwt_B");
+    tokenB.setJwt
+
+    ("jwt_B");
     TokenResponseDTO dtoA = new TokenResponseDTO();
     TokenResponseDTO dtoB = new TokenResponseDTO();
 

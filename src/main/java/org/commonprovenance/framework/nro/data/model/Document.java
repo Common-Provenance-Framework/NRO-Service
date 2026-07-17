@@ -2,19 +2,21 @@ package org.commonprovenance.framework.nro.data.model;
 
 import jakarta.persistence.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 
 @Entity
 public class Document {
 
   @Id
+  private String id;
+
   private String identifier;
 
-  @Lob
-  private String docFormat;
+  private String graphFormat;
 
   @ManyToOne
   @JoinColumn(name = "certificate", referencedColumnName = "certDigest")
@@ -25,22 +27,30 @@ public class Document {
   private Organization organization;
 
   @Enumerated(EnumType.STRING)
-  private DocumentType documentType;
+  private GraphType graphType;
 
-  @Lob
-  private String documentText;
+  @Column(columnDefinition = "bytea")
+  @Basic(fetch = FetchType.LAZY)
+  private byte[] graph;
 
   private LocalDateTime createdOn;
 
-  @Lob
-  private String signature;
+  @Column(columnDefinition = "bytea")
+  @Basic(fetch = FetchType.LAZY)
+  private byte[] signature;
 
   public String getSignature() {
-    return signature;
+    if (signature == null)
+      return null;
+
+    return new String(signature, StandardCharsets.UTF_8);
   }
 
   public void setSignature(String signature) {
-    this.signature = signature;
+    if (signature == null)
+      this.signature = null;
+    else
+      this.signature = signature.getBytes(StandardCharsets.UTF_8);
   }
 
   public LocalDateTime getCreatedOn() {
@@ -51,20 +61,26 @@ public class Document {
     this.createdOn = createdOn;
   }
 
-  public String getDocumentText() {
-    return documentText;
+  public String getGraph() {
+    if (graph == null)
+      return null;
+
+    return new String(graph, StandardCharsets.UTF_8);
   }
 
-  public void setDocumentText(String documentText) {
-    this.documentText = documentText;
+  public void setGraph(String graph) {
+    if (graph == null)
+      this.graph = null;
+    else
+      this.graph = graph.getBytes(StandardCharsets.UTF_8);
   }
 
-  public DocumentType getDocumentType() {
-    return documentType;
+  public GraphType getGraphType() {
+    return graphType;
   }
 
-  public void setDocumentType(DocumentType documentType) {
-    this.documentType = documentType;
+  public void setGraphType(GraphType graphType) {
+    this.graphType = graphType;
   }
 
   public Organization getOrganization() {
@@ -83,12 +99,20 @@ public class Document {
     this.certificate = certificate;
   }
 
-  public String getDocFormat() {
-    return docFormat;
+  public String getGraphFormat() {
+    return graphFormat;
   }
 
-  public void setDocFormat(String docFormat) {
-    this.docFormat = docFormat;
+  public void setGraphFormat(String graphFormat) {
+    this.graphFormat = graphFormat;
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
   }
 
   public String getIdentifier() {
@@ -103,31 +127,32 @@ public class Document {
   public boolean equals(Object o) {
     if (!(o instanceof Document document))
       return false;
-    return Objects.equals(identifier, document.identifier)
-        && Objects.equals(docFormat, document.docFormat)
+    return Objects.equals(id, document.id)
+        && Objects.equals(identifier, document.identifier)
+        && Objects.equals(graphFormat, document.graphFormat)
         && Objects.equals(certificate, document.certificate)
         && Objects.equals(organization, document.organization)
-        && documentType == document.documentType
-        && Objects.equals(documentText, document.documentText)
+        && graphType == document.graphType
+        && Objects.equals(graph, document.graph)
         && Objects.equals(createdOn, document.createdOn)
         && Objects.equals(signature, document.signature);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(identifier, docFormat, certificate, organization,
-        documentType, documentText, createdOn, signature);
+    return Objects.hash(id, identifier, graphFormat, certificate, organization, graphType, graph, createdOn, signature);
   }
 
   @Override
   public String toString() {
     return "Document{" +
+        "id='" + id + '\'' +
         "identifier='" + identifier + '\'' +
-        ", docFormat='" + docFormat + '\'' +
+        ", graphFormat='" + graphFormat + '\'' +
         ", certificate=" + certificate +
         ", organization=" + organization +
-        ", documentType=" + documentType +
-        ", documentText='" + documentText + '\'' +
+        ", graphType=" + graphType +
+        ", graph='" + graph + '\'' +
         ", createdOn=" + createdOn +
         ", signature='" + signature + '\'' +
         '}';

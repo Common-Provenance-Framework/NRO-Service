@@ -70,7 +70,7 @@ class TokenRestControllerTest {
   @Test
   void issueToken_missingRequiredField_returnsBadRequest() throws Exception {
     TokenRequestDTO body = TestDataFactory.tokenRequest();
-    body.setDocument(null);
+    body.setGraph(null);
 
     mockMvc.perform(post("/api/v1/issueToken")
         .contentType(MediaType.APPLICATION_JSON)

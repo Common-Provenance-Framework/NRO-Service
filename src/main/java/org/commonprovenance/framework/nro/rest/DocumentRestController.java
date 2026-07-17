@@ -22,12 +22,12 @@ public class DocumentRestController {
     this.documentFacade = documentFacade;
   }
 
-  @GetMapping("/organizations/{orgId}/documents/{docId}/{docFormat}")
+  @GetMapping("/organizations/{orgId}/documents/{docId}/{graphFormat}")
   public ResponseEntity<DocumentDTO> getDocument(
       @PathVariable @NonNull String orgId,
       @PathVariable String docId,
-      @PathVariable String docFormat) {
-    DocumentDTO response = documentFacade.getDocument(orgId, docId, docFormat);
+      @PathVariable String graphFormat) {
+    DocumentDTO response = documentFacade.getDocument(orgId, docId, graphFormat);
     return ResponseEntity.ok(response);
   }
 }

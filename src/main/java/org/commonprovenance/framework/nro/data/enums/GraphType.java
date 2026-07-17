@@ -2,14 +2,14 @@ package org.commonprovenance.framework.nro.data.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-public enum DocumentType {
+public enum GraphType {
   GRAPH,
   DOMAIN_SPECIFIC,
   BACKBONE,
   META;
 
   @JsonCreator
-  public static DocumentType fromValue(String value) {
+  public static GraphType fromValue(String value) {
     if (value == null) {
       return null;
     }
@@ -18,6 +18,6 @@ public enum DocumentType {
         .replace('-', '_')
         .toUpperCase();
 
-    return DocumentType.valueOf(normalized);
+    return GraphType.valueOf(normalized);
   }
 }

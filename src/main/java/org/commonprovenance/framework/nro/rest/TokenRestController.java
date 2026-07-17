@@ -27,12 +27,12 @@ public class TokenRestController {
     this.tokenFacade = tokenFacade;
   }
 
-  @GetMapping("/organizations/{orgId}/tokens/{docId}/{docFormat}")
+  @GetMapping("/organizations/{orgId}/tokens/{docId}/{graphFormat}")
   public ResponseEntity<List<TokenResponseDTO>> getToken(
       @PathVariable String orgId,
       @PathVariable String docId,
-      @PathVariable String docFormat) {
-    List<TokenResponseDTO> response = tokenFacade.getToken(orgId, docId, docFormat);
+      @PathVariable String graphFormat) {
+    List<TokenResponseDTO> response = tokenFacade.getToken(orgId, docId, graphFormat);
     return ResponseEntity.ok(response);
   }
 

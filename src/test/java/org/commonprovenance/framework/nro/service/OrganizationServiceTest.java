@@ -352,7 +352,7 @@ class OrganizationServiceTest {
 
   private StoreCertOrganizationDTO buildStoreDto(String orgId) {
     StoreCertOrganizationDTO body = TestDataFactory.storeCertRequest();
-    body.setOrganizationId(orgId);
+    body.setId(orgId);
     return body;
   }
 }

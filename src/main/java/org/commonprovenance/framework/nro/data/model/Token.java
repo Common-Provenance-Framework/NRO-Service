@@ -1,13 +1,16 @@
 package org.commonprovenance.framework.nro.data.model;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+import jakarta.persistence.Basic;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 
 @Entity
@@ -22,8 +25,10 @@ public class Token {
   private Document document;
 
   private String type;
-  @Lob
-  private String tokenValue;
+
+  @Column(columnDefinition = "bytea")
+  @Basic(fetch = FetchType.LAZY)
+  private byte[] jwt;
 
   public Long getId() {
     return id;
@@ -49,12 +54,12 @@ public class Token {
     this.type = type;
   }
 
-  public String getTokenValue() {
-    return tokenValue;
+  public String getJwt() {
+    return new String(jwt, StandardCharsets.UTF_8);
   }
 
-  public void setTokenValue(String tokenValue) {
-    this.tokenValue = tokenValue;
+  public void setJwt(String jwt) {
+    this.jwt = jwt.getBytes(StandardCharsets.UTF_8);
   }
 
   @Override
@@ -64,12 +69,12 @@ public class Token {
     return Objects.equals(id, token.id)
         && Objects.equals(document, token.document)
         && Objects.equals(type, token.type)
-        && Objects.equals(tokenValue, token.tokenValue);
+        && Objects.equals(jwt, token.jwt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, document, type, tokenValue);
+    return Objects.hash(id, document, type, jwt);
   }
 
   @Override
@@ -78,7 +83,7 @@ public class Token {
         "id=" + id +
         ", document=" + document +
         ", type=" + type +
-        ", tokenValue='" + tokenValue + '\'' +
+        ", tokenValue='" + jwt + '\'' +
         '}';
   }
 }

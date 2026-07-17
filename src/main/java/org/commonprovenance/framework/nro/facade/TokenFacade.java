@@ -6,7 +6,7 @@ import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.api.TokenResponseDTO;
 
 public interface TokenFacade {
-  List<TokenResponseDTO> getToken(String organizationId, String documentId, String documentFormat);
+  List<TokenResponseDTO> getToken(String organizationId, String documentId, String graphFormat);
 
   List<TokenResponseDTO> getAllTokens(String organizationId);
 

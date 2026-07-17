@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
@@ -40,7 +40,7 @@ class TokenRepositoryTest {
     List<Token> result = tokenRepository.findByDocument(documentA);
 
     assertThat(result)
-        .extracting(token -> token.getTokenValue())
+        .extracting(token -> token.getJwt())
         .containsExactlyInAnyOrder("jwt-hash-1", "jwt-hash-2");
   }
 
@@ -56,7 +56,7 @@ class TokenRepositoryTest {
   @Test
   void findByDocument_nonExistingDocument_returnsEmptyList() {
     Document document = new Document();
-    document.setIdentifier("missing-doc");
+    document.setId("missing-doc");
 
     List<Token> result = tokenRepository.findByDocument(document);
 
@@ -69,7 +69,7 @@ class TokenRepositoryTest {
 
     Token token = new Token();
     token.setDocument(document);
-    token.setTokenValue("jwt-save");
+    token.setJwt("jwt-save");
 
     Token saved = tokenRepository.save(token);
     entityManager.flush();
@@ -79,17 +79,18 @@ class TokenRepositoryTest {
 
     Token reloaded = tokenRepository.findById(requireNonNull(saved.getId())).orElseThrow();
 
-    assertThat(reloaded.getTokenValue()).isEqualTo("jwt-save");
-    assertThat(reloaded.getDocument().getIdentifier()).isEqualTo("doc-save");
+    assertThat(reloaded.getJwt()).isEqualTo("jwt-save");
+    assertThat(reloaded.getDocument().getIdentifier()).isEqualTo(buildIdentifier("doc-save", document.getOrganization()));
+    assertThat(reloaded.getDocument().getId()).isEqualTo("doc-save");
   }
 
-  private Document saveDocument(String identifier) {
+  private Document saveDocument(String id) {
     Organization organization = new Organization();
-    organization.setId("org-" + identifier);
+    organization.setId("org-" + id);
     entityManager.persist(organization);
 
     Certificate certificate = new Certificate();
-    certificate.setCertDigest("cert-" + identifier);
+    certificate.setCertDigest("cert-" + id);
     certificate.setCert("cert-body");
     certificate.setCertificateType(CertificateType.CLIENT);
     certificate.setIsRevoked(false);
@@ -98,14 +99,15 @@ class TokenRepositoryTest {
     entityManager.persist(certificate);
 
     Document document = new Document();
-    document.setIdentifier(identifier);
-    document.setDocFormat("json");
+    document.setId(id);
+    document.setIdentifier(buildIdentifier(id, organization));
+    document.setGraphFormat("json");
     document.setCertificate(certificate);
     document.setOrganization(organization);
-    document.setDocumentType(DocumentType.GRAPH);
-    document.setDocumentText("{}");
+    document.setGraphType(GraphType.GRAPH);
+    document.setGraph("{}");
     document.setCreatedOn(LocalDateTime.now());
-    document.setSignature("sig-" + identifier);
+    document.setSignature("sig-" + id);
     entityManager.persist(document);
 
     entityManager.flush();
@@ -115,9 +117,14 @@ class TokenRepositoryTest {
   private Token saveToken(Document document, String hash) {
     Token token = new Token();
     token.setDocument(document);
-    token.setTokenValue("jwt-" + hash);
+    token.setJwt("jwt-" + hash);
     entityManager.persist(token);
     entityManager.flush();
     return token;
+  }
+
+  private String buildIdentifier(String id, Organization organization) {
+    // http://localhost:8080/api/v1/organizations/6fb292aa-ee38-48ae-998f-079ad9d01e7c/documents/dc8efed0-0035-4029-9065-8c46667151db
+    return "http://localhost:8080/api/v1/organizations/" + organization.getId() + "/documents/" + id;
   }
 }

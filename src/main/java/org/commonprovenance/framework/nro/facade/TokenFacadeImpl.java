@@ -28,11 +28,11 @@ public class TokenFacadeImpl implements TokenFacade {
   }
 
   @Override
-  public List<TokenResponseDTO> getToken(String organizationId, String documentId, String documentFormat) {
+  public List<TokenResponseDTO> getToken(String organizationId, String documentId, String graphFormat) {
     List<Token> tokens = tokenService.getToken(
         Objects.requireNonNull(organizationId),
         documentId,
-        documentFormat);
+        graphFormat);
 
     return tokenMapper.mapToList(tokens);
   }

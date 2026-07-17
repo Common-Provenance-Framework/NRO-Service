@@ -9,12 +9,13 @@ public class DocumentMapper {
 
   public DocumentDTO mapToDTO(Document document) {
     DocumentDTO dto = new DocumentDTO();
+    dto.setId(document.getId());
     dto.setIdentifier(document.getIdentifier());
-    dto.setDocumentFormat(document.getDocFormat());
+    dto.setGraphFormat(document.getGraphFormat());
     dto.setCertDigest(document.getCertificate().getCertDigest());
     dto.setOrganizationId(document.getOrganization().getId());
-    dto.setDocumentType(document.getDocumentType());
-    dto.setDocumentText(document.getDocumentText());
+    dto.setGraphType(document.getGraphType());
+    dto.setGraph(document.getGraph());
     dto.setCreatedOn(document.getCreatedOn());
     dto.setSignature(document.getSignature());
     return dto;
