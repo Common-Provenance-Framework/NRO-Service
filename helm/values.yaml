@@ -1,8 +1,8 @@
 replicaCount: 1
 
 image:
-  repository: nro-service
-  tag: latest # TODO: Setup Dockerhub
+  repository: cerit.io/commonprovenanceframework/nro-service
+  tag: latest
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
