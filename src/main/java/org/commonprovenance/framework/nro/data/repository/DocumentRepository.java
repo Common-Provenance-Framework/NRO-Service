@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.data.repository;
 
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,15 +12,21 @@ import java.util.Optional;
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, String> {
 
-  Optional<Document> findByIdentifierAndDocFormatAndOrganization(
-      String identifier,
-      String docFormat,
+  Optional<Document> findByIdAndGraphFormatAndOrganization(
+      String id,
+      String graphFormat,
       Organization organization);
 
-  Optional<Document> findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
+  Optional<Document> findByIdAndGraphFormatAndGraphTypeAndOrganization(
+      String id,
+      String graphFormat,
+      GraphType graphType,
+      Organization organization);
+
+  Optional<Document> findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
       String identifier,
-      String docFormat,
-      DocumentType documentType,
+      String graphFormat,
+      GraphType graphType,
       Organization organization);
 
   List<Document> findByOrganization(Organization organization);

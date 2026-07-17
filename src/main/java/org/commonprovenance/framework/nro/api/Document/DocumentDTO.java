@@ -2,19 +2,28 @@ package org.commonprovenance.framework.nro.api.Document;
 
 import java.time.LocalDateTime;
 
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 
 public class DocumentDTO {
+  private String id;
   private String identifier;
-  private String documentFormat;
+  private String graphFormat;
   private String certDigest;
   private String organizationId;
-  private DocumentType documentType;
-  private String documentText;
+  private GraphType graphType;
+  private String graph;
   private LocalDateTime createdOn;
   private String signature;
 
   public DocumentDTO() {
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
   }
 
   public String getIdentifier() {
@@ -25,12 +34,12 @@ public class DocumentDTO {
     this.identifier = identifier;
   }
 
-  public String getDocumentFormat() {
-    return documentFormat;
+  public String getGraphFormat() {
+    return graphFormat;
   }
 
-  public void setDocumentFormat(String documentFormat) {
-    this.documentFormat = documentFormat;
+  public void setGraphFormat(String graphFormat) {
+    this.graphFormat = graphFormat;
   }
 
   public String getCertDigest() {
@@ -49,20 +58,20 @@ public class DocumentDTO {
     this.organizationId = organizationId;
   }
 
-  public DocumentType getDocumentType() {
-    return documentType;
+  public GraphType getGraphType() {
+    return graphType;
   }
 
-  public void setDocumentType(DocumentType documentType) {
-    this.documentType = documentType;
+  public void setGraphType(GraphType graphType) {
+    this.graphType = graphType;
   }
 
-  public String getDocumentText() {
-    return documentText;
+  public String getGraph() {
+    return graph;
   }
 
-  public void setDocumentText(String documentText) {
-    this.documentText = documentText;
+  public void setGraph(String graph) {
+    this.graph = graph;
   }
 
   public LocalDateTime getCreatedOn() {

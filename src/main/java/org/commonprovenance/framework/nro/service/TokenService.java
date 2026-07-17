@@ -41,7 +41,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
@@ -98,21 +98,22 @@ public class TokenService {
   public List<Token> getToken(
       @NonNull String organizationId,
       String documentId,
-      String documentFormat) {
+      String graphFormat) {
     Organization organization = organizationRepository
         .findById(organizationId)
         .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
 
     Document doc = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(documentId, documentFormat, DocumentType.GRAPH, organization)
+        .findByIdAndGraphFormatAndGraphTypeAndOrganization(documentId, graphFormat, GraphType.GRAPH, organization)
         .orElseThrow(() -> new DocumentNotFoundException(
             "No document with id " + documentId
-                + " in format " + documentFormat
+                + " in format " + graphFormat
                 + "exists for organization " + organizationId));
 
     return tokenRepository.findByDocument(doc);
   }
 
+  @Transactional(readOnly = true) // Ensure active transaction
   public Map<Document, List<Token>> getAllTokens(@NonNull String organizationId) {
     Organization organization = organizationRepository
         .findById(organizationId)
@@ -139,26 +140,26 @@ public class TokenService {
       }
     }
 
-    if (body.getDocumentType() == DocumentType.GRAPH &&
+    if (body.getGraphType() == GraphType.GRAPH &&
         (body.getSignature() == null || body.getSignature().isBlank())) {
       throw new MissingSignatureException("Mandatory field [\"signature\"] not present in request!");
     }
 
-    LocalDateTime createdOn = parseCreatedOn(body.getCreatedOn());
+    LocalDateTime createdOn = parseLocalDateTime(body.getCreatedOn());
     if (createdOn.isAfter(LocalDateTime.now())) {
       throw new InvalidTimestampException("Incorrect timestamp for the document");
     }
 
-    if (body.getDocumentType() == DocumentType.GRAPH ||
-        body.getDocumentType() == DocumentType.BACKBONE ||
-        body.getDocumentType() == DocumentType.DOMAIN_SPECIFIC) {
+    if (body.getGraphType() == GraphType.GRAPH ||
+        body.getGraphType() == GraphType.BACKBONE ||
+        body.getGraphType() == GraphType.DOMAIN_SPECIFIC) {
 
       organizationRepository
           .findById(Objects.requireNonNull(body.getOrganizationId()))
           .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
     }
 
-    if (body.getDocumentType() == DocumentType.GRAPH) {
+    if (body.getGraphType() == GraphType.GRAPH) {
       boolean verified = verifySignature(body);
       if (!verified) {
         throw new SignatureVerificationException("Invalid signature to the graph!");
@@ -170,36 +171,36 @@ public class TokenService {
 
   protected Token issueTokenAndStoreDoc(TokenRequestDTO body) {
     org.openprovenance.prov.model.Document provDocument = ProvToolboxUtils.parseDocument(
-        body.getDocument(),
-        body.getDocumentFormat());
+        body.getGraph(),
+        body.getGraphFormat());
 
     Bundle bundle = extractSingleBundle(provDocument);
-    String bundleId = resolveBundleId(bundle);
+    String bundleIdentifier = resolveBundleIdentifier(bundle);
 
-    if (body.getDocumentType() == DocumentType.DOMAIN_SPECIFIC
-        || body.getDocumentType() == DocumentType.BACKBONE) {
+    if (body.getGraphType() == GraphType.DOMAIN_SPECIFIC
+        || body.getGraphType() == GraphType.BACKBONE) {
       // TODO: retrieve original bundle and implement subgraph check - was not implemented in Python version
       checkIsSubgraph(bundle, null);
     }
 
-    if (body.getDocumentType() == DocumentType.META) {
-      return buildMetaToken(body, bundleId);
+    if (body.getGraphType() == GraphType.META) {
+      return buildMetaToken(body, bundle);
     }
 
     Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
         .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
 
     Optional<Document> existingDoc = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
-            bundleId,
-            body.getDocumentFormat(),
-            body.getDocumentType(),
+        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
+            bundleIdentifier,
+            body.getGraphFormat(),
+            body.getGraphType(),
             org);
 
     if (existingDoc.isPresent()) {
       List<Token> tokens = tokenRepository.findByDocument(existingDoc.get());
       if (!tokens.isEmpty()) {
-        throw new TokenAlreadyExistsException("Token for Document with identifier [" + bundleId + "] already exists");
+        throw new TokenAlreadyExistsException("Token for Document with identifier [" + bundleIdentifier + "] already exists");
       }
     }
 
@@ -213,17 +214,17 @@ public class TokenService {
     }
 
     Document doc = new Document();
-    doc.setIdentifier(bundleId);
-    doc.setDocFormat(body.getDocumentFormat());
+    doc.setId(resolveBundleId(bundle));
+    doc.setIdentifier(bundleIdentifier);
+    doc.setGraphFormat(body.getGraphFormat());
     doc.setOrganization(org);
     doc.setCertificate(cert);
-    doc.setDocumentType(body.getDocumentType());
-    doc.setDocumentText(body.getDocument());
-    doc.setCreatedOn(parseCreatedOn(body.getCreatedOn()));
-    doc.setSignature(body.getDocumentType() == DocumentType.GRAPH ? body.getSignature() : null);
+    doc.setGraphType(body.getGraphType());
+    doc.setGraph(body.getGraph());
+    doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
+    doc.setSignature(body.getGraphType() == GraphType.GRAPH ? body.getSignature() : null);
     documentRepository.save(doc);
-
-    Token token = buildToken(body, doc, bundleId);
+    Token token = buildToken(body, doc, bundleIdentifier);
     tokenRepository.save(Objects.requireNonNull(token));
     return token;
   }
@@ -243,7 +244,7 @@ public class TokenService {
       throw new CertificateNotFoundException(body.getOrganizationId());
     }
 
-    String graph = body.getDocument();
+    String graph = body.getGraph();
 
     try {
       CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -264,11 +265,27 @@ public class TokenService {
     }
   }
 
+  private LocalDateTime parseLocalDateTime(String createdOn) {
+    if (createdOn == null || createdOn.isBlank()) {
+      return LocalDateTime.now();
+    }
+    String text = createdOn.trim();
+
+    try {
+
+      return LocalDateTime.parse(text);
+    } catch (Throwable e) {
+      return parseCreatedOn(text);
+    }
+
+  }
+
   private LocalDateTime parseCreatedOn(String createdOn) {
     if (createdOn == null || createdOn.isBlank()) {
       return LocalDateTime.now();
     }
     String text = createdOn.trim();
+
     if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
       text = text.substring(1, text.length() - 1).trim();
     }
@@ -299,7 +316,7 @@ public class TokenService {
   }
 
   private String inferOrganizationId(TokenRequestDTO body) {
-    String document = body.getDocument();
+    String document = body.getGraph();
     if (document == null || document.isBlank()) {
       return null;
     }
@@ -334,7 +351,7 @@ public class TokenService {
     return first;
   }
 
-  private String resolveBundleId(Bundle bundle) {
+  private String resolveBundleIdentifier(Bundle bundle) {
     if (bundle.getId() == null) {
       throw new IllegalArgumentException("Bundle identifier is missing.");
     }
@@ -344,43 +361,56 @@ public class TokenService {
     return bundle.getId().toString();
   }
 
+  private String resolveBundleId(Bundle bundle) {
+    if (bundle.getId() == null) {
+      throw new IllegalArgumentException("Bundle identifier is missing.");
+    }
+    if (bundle.getId().getLocalPart() != null) {
+      return bundle.getId().getLocalPart();
+    }
+    return bundle.getId().toString();
+  }
+
   private void checkIsSubgraph(Bundle provBundle, Bundle originalBundle) {
     // TODO: Implement real subgraph validation - was not implemented in Python version
   }
 
-  private Token buildMetaToken(TokenRequestDTO body, String bundleId) {
+  private Token buildMetaToken(TokenRequestDTO body, Bundle bundle) {
+    String bundleIdentifier = resolveBundleIdentifier(bundle);
+
     Document doc = new Document();
-    doc.setIdentifier(bundleId);
-    doc.setDocFormat(body.getDocumentFormat());
-    doc.setDocumentType(body.getDocumentType());
-    doc.setDocumentText(body.getDocument());
-    doc.setCreatedOn(parseCreatedOn(body.getCreatedOn()));
+    doc.setId(resolveBundleId(bundle));
+    doc.setIdentifier(bundleIdentifier);
+    doc.setGraphFormat(body.getGraphFormat());
+    doc.setGraphType(body.getGraphType());
+    doc.setGraph(body.getGraph());
+    doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
     doc.setSignature(null);
 
     Organization org = new Organization();
     org.setId(body.getOrganizationId());
     doc.setOrganization(org);
 
-    Token token = buildToken(body, doc, bundleId);
+    Token token = buildToken(body, doc, bundleIdentifier);
     token.setDocument(doc);
     return token;
   }
 
-  private Token buildToken(TokenRequestDTO body, Document doc, String bundleId) {
+  private Token buildToken(TokenRequestDTO body, Document doc, String bundleIdentifier) {
     LocalDateTime tokenTimestamp = LocalDateTime.now();
-    String documentDigest = sha256Hex(Base64.getDecoder().decode(body.getDocument()));
+    String documentDigest = sha256Hex(Base64.getDecoder().decode(body.getGraph()));
 
     String tokenValue = buildJwtToken(
         body.getOrganizationId(),
         tokenTimestamp,
-        parseCreatedOn(body.getCreatedOn()),
+        parseLocalDateTime(body.getCreatedOn()),
         documentDigest,
-        bundleId);
+        bundleIdentifier);
 
     Token token = new Token();
     token.setDocument(doc);
-    token.setType(body.getDocumentType().name());
-    token.setTokenValue(tokenValue);
+    token.setType(body.getGraphType().name());
+    token.setJwt(tokenValue);
     return token;
   }
 

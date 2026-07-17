@@ -22,14 +22,14 @@ public final class ProvToolboxUtils {
   private ProvToolboxUtils() {
   }
 
-  public static Document parseDocument(String base64Document, String format) {
+  public static Document parseDocument(String base64Graph, String format) {
     try {
-      if (base64Document == null || base64Document.isBlank()) {
-        throw new IllegalArgumentException("Missing document content.");
+      if (base64Graph == null || base64Graph.isBlank()) {
+        throw new IllegalArgumentException("Missing graph content.");
       }
       String toolboxFormat = normalizeFormat(format);
 
-      String decoded = new String(Base64.getDecoder().decode(base64Document), StandardCharsets.UTF_8);
+      String decoded = new String(Base64.getDecoder().decode(base64Graph), StandardCharsets.UTF_8);
       String preprocessed = ProvToolboxUtils.preprocessIncompatibleJsonForDeserialization(decoded, toolboxFormat, true);
       ByteArrayInputStream inputStream = new ByteArrayInputStream(preprocessed.getBytes(StandardCharsets.UTF_8));
       InteropFramework interop = new InteropFramework();
@@ -39,7 +39,7 @@ public final class ProvToolboxUtils {
       }
       return interop.readDocument(inputStream, provFormat);
     } catch (Exception e) {
-      throw new IllegalArgumentException("Unable to parse PROV document.", e);
+      throw new IllegalArgumentException("Unable to parse PROV graph.", e);
     }
   }
 

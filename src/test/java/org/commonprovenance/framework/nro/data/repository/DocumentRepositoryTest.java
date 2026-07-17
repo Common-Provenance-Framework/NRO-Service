@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
@@ -32,117 +32,118 @@ class DocumentRepositoryTest {
     Organization organization = saveOrganization("org-save");
     Certificate certificate = saveCertificate(organization, "cert-save");
 
-    Document document = buildDocument("doc-save", "json", DocumentType.GRAPH, organization, certificate);
+    Document document = buildDocument("doc-save", "json", GraphType.GRAPH, organization, certificate);
 
     documentRepository.save(document);
 
     Optional<Document> reloaded = documentRepository
-        .findByIdentifierAndDocFormatAndOrganization("doc-save", "json", organization);
+        .findByIdAndGraphFormatAndOrganization("doc-save", "json", organization);
 
     assertThat(reloaded).isPresent();
-    assertThat(reloaded.get().getDocumentType()).isEqualTo(DocumentType.GRAPH);
+    assertThat(reloaded.get().getGraphType()).isEqualTo(GraphType.GRAPH);
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndOrganization_existingDocument_returnsDocument() {
+  void findByIdentifierAndGraphFormatAndOrganization_existingDocument_returnsDocument() {
     Organization organization = saveOrganization("org-a");
     Certificate certificate = saveCertificate(organization, "cert-a");
-    saveDocument("doc-a", "json", DocumentType.GRAPH, organization, certificate);
+    saveDocument("doc-a", "json", GraphType.GRAPH, organization, certificate);
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndOrganization("doc-a", "json", organization);
+        .findByIdAndGraphFormatAndOrganization("doc-a", "json", organization);
 
     assertThat(result).isPresent();
-    assertThat(result.get().getIdentifier()).isEqualTo("doc-a");
+    assertThat(result.get().getId()).isEqualTo("doc-a");
+    assertThat(result.get().getIdentifier()).isEqualTo(buildIdentifier("doc-a", organization));
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndOrganization_nonExistingDocument_returnsEmpty() {
+  void findByIdentifierAndGraphFormatAndOrganization_nonExistingDocument_returnsEmpty() {
     Organization organization = saveOrganization("org-missing");
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndOrganization("doc-missing", "json", organization);
+        .findByIdAndGraphFormatAndOrganization("doc-missing", "json", organization);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndDocumentTypeAndOrganization_existingDocument_returnsDocument() {
+  void findByIdentifierAndGraphFormatAndGraphTypeAndOrganization_existingDocument_returnsDocument() {
     Organization organization = saveOrganization("org-b");
     Certificate certificate = saveCertificate(organization, "cert-b");
-    saveDocument("doc-b", "xml", DocumentType.META, organization, certificate);
+    saveDocument("doc-b", "xml", GraphType.META, organization, certificate);
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
-            "doc-b",
+        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
+            buildIdentifier("doc-b", organization),
             "xml",
-            DocumentType.META,
+            GraphType.META,
             organization);
 
     assertThat(result).isPresent();
-    assertThat(result.get().getDocFormat()).isEqualTo("xml");
+    assertThat(result.get().getGraphFormat()).isEqualTo("xml");
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndDocumentTypeAndOrganization_wrongType_returnsEmpty() {
+  void findByIdentifierAndGraphFormatAndGraphTypeAndOrganization_wrongType_returnsEmpty() {
     Organization organization = saveOrganization("org-c");
     Certificate certificate = saveCertificate(organization, "cert-c");
-    saveDocument("doc-c", "xml", DocumentType.GRAPH, organization, certificate);
+    saveDocument("doc-c", "xml", GraphType.GRAPH, organization, certificate);
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
+        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
             "doc-c",
             "xml",
-            DocumentType.META,
+            GraphType.META,
             organization);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndDocumentTypeAndOrganization_wrongFormat_returnsEmpty() {
+  void findByIdentifierAndGraphFormatAndGraphTypeAndOrganization_wrongFormat_returnsEmpty() {
     Organization organization = saveOrganization("org-format");
     Certificate certificate = saveCertificate(organization, "cert-format");
-    saveDocument("doc-format", "json", DocumentType.META, organization, certificate);
+    saveDocument("doc-format", "json", GraphType.META, organization, certificate);
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
+        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
             "doc-format",
             "xml",
-            DocumentType.META,
+            GraphType.META,
             organization);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndDocumentTypeAndOrganization_wrongOrganization_returnsEmpty() {
+  void findByIdentifierAndGraphFormatAndGraphTypeAndOrganization_wrongOrganization_returnsEmpty() {
     Organization organization = saveOrganization("org-right");
     Organization otherOrganization = saveOrganization("org-wrong");
     Certificate certificate = saveCertificate(organization, "cert-org");
-    saveDocument("doc-org", "xml", DocumentType.GRAPH, organization, certificate);
+    saveDocument("doc-org", "xml", GraphType.GRAPH, organization, certificate);
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
+        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
             "doc-org",
             "xml",
-            DocumentType.GRAPH,
+            GraphType.GRAPH,
             otherOrganization);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void findByIdentifierAndDocFormatAndDocumentTypeAndOrganization_wrongIdentifier_returnsEmpty() {
+  void findByIdentifierAndGraphFormatAndGraphTypeAndOrganization_wrongIdentifier_returnsEmpty() {
     Organization organization = saveOrganization("org-id");
     Certificate certificate = saveCertificate(organization, "cert-id");
-    saveDocument("doc-id", "json", DocumentType.META, organization, certificate);
+    saveDocument("doc-id", "json", GraphType.META, organization, certificate);
 
     Optional<Document> result = documentRepository
-        .findByIdentifierAndDocFormatAndDocumentTypeAndOrganization(
+        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
             "doc-id-wrong",
             "json",
-            DocumentType.META,
+            GraphType.META,
             organization);
 
     assertThat(result).isEmpty();
@@ -155,14 +156,14 @@ class DocumentRepositoryTest {
     Certificate certificate = saveCertificate(organization, "cert-list");
     Certificate otherCertificate = saveCertificate(otherOrganization, "cert-other");
 
-    saveDocument("doc-1", "json", DocumentType.GRAPH, organization, certificate);
-    saveDocument("doc-2", "json", DocumentType.META, organization, certificate);
-    saveDocument("doc-3", "json", DocumentType.META, otherOrganization, otherCertificate);
+    saveDocument("doc-1", "json", GraphType.GRAPH, organization, certificate);
+    saveDocument("doc-2", "json", GraphType.META, organization, certificate);
+    saveDocument("doc-3", "json", GraphType.META, otherOrganization, otherCertificate);
 
     List<Document> result = documentRepository.findByOrganization(organization);
 
     assertThat(result)
-        .extracting(Document::getIdentifier)
+        .extracting(Document::getId)
         .containsExactlyInAnyOrder("doc-1", "doc-2");
   }
 
@@ -205,32 +206,40 @@ class DocumentRepositoryTest {
   }
 
   private Document saveDocument(
-      String identifier,
-      String docFormat,
-      DocumentType documentType,
+      String id,
+      String graphFormat,
+      GraphType graphType,
       Organization organization,
       Certificate certificate) {
-    Document document = buildDocument(identifier, docFormat, documentType, organization, certificate);
+    Document document = buildDocument(id, graphFormat, graphType, organization, certificate);
     entityManager.persist(document);
     entityManager.flush();
     return document;
   }
 
   private Document buildDocument(
-      String identifier,
-      String docFormat,
-      DocumentType documentType,
+      String id,
+      String graphFormat,
+      GraphType graphType,
       Organization organization,
       Certificate certificate) {
+    String identifier = buildIdentifier(id, organization);
+
     Document document = new Document();
+    document.setId(id);
     document.setIdentifier(identifier);
-    document.setDocFormat(docFormat);
+    document.setGraphFormat(graphFormat);
     document.setCertificate(certificate);
     document.setOrganization(organization);
-    document.setDocumentType(documentType);
-    document.setDocumentText("{}");
+    document.setGraphType(graphType);
+    document.setGraph("{}");
     document.setCreatedOn(LocalDateTime.now());
     document.setSignature("sig-" + identifier);
     return document;
+  }
+
+  private String buildIdentifier(String id, Organization organization) {
+    // http://localhost:8080/api/v1/organizations/6fb292aa-ee38-48ae-998f-079ad9d01e7c/documents/dc8efed0-0035-4029-9065-8c46667151db
+    return "http://localhost:8080/api/v1/organizations/" + organization.getId() + "/documents/" + id;
   }
 }

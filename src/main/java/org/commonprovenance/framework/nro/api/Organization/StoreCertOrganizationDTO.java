@@ -8,7 +8,7 @@ import java.util.List;
 public class StoreCertOrganizationDTO {
 
   @NotEmpty(message = "Organization id must not be empty")
-  private String organizationId;
+  private String id;
 
   @NotEmpty(message = "Client certificate must not be empty")
   private String clientCertificate;
@@ -19,12 +19,12 @@ public class StoreCertOrganizationDTO {
   public StoreCertOrganizationDTO() {
   }
 
-  public String getOrganizationId() {
-    return organizationId;
+  public String getId() {
+    return id;
   }
 
-  public void setOrganizationId(String organizationId) {
-    this.organizationId = organizationId;
+  public void setId(String id) {
+    this.id = id;
   }
 
   public String getClientCertificate() {

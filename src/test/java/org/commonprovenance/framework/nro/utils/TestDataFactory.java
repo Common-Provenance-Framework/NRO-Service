@@ -6,7 +6,7 @@ import java.util.List;
 import org.commonprovenance.framework.nro.api.Organization.OrganizationDTO;
 import org.commonprovenance.framework.nro.api.Organization.StoreCertOrganizationDTO;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 
 public final class TestDataFactory {
 
@@ -16,9 +16,9 @@ public final class TestDataFactory {
   public static TokenRequestDTO tokenRequest() {
     TokenRequestDTO body = new TokenRequestDTO();
     body.setOrganizationId("org-1");
-    body.setDocument("ZHVtbXktZG9j");
-    body.setDocumentFormat("json");
-    body.setDocumentType(DocumentType.GRAPH);
+    body.setGraph("ZHVtbXktZG9j");
+    body.setGraphFormat("json");
+    body.setGraphType(GraphType.GRAPH);
     body.setCreatedOn(LocalDateTime.of(2024, 1, 1, 12, 0).toString());
     body.setSignature("sig");
     return body;
@@ -26,7 +26,7 @@ public final class TestDataFactory {
 
   public static StoreCertOrganizationDTO storeCertRequest() {
     StoreCertOrganizationDTO body = new StoreCertOrganizationDTO();
-    body.setOrganizationId("org-1");
+    body.setId("org-1");
     body.setClientCertificate("client-cert");
     body.setIntermediateCertificates(List.of("intermediate-1"));
     return body;

@@ -225,7 +225,7 @@ class TrustedPartyApiComponentTest {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("organizationId", unknownOrgId);
     body.put("document", Base64.getEncoder().encodeToString(graphBytes));
-    body.put("documentFormat", "json");
+    body.put("graphFormat", "json");
     body.put("type", "meta");
     body.put("createdOn", String.valueOf(Instant.now().minusSeconds(60).getEpochSecond()));
 
@@ -254,7 +254,7 @@ class TrustedPartyApiComponentTest {
     Map<String, Object> valid = new LinkedHashMap<>();
     valid.put("organizationId", orgId);
     valid.put("document", Base64.getEncoder().encodeToString(graphBytes));
-    valid.put("documentFormat", "json");
+    valid.put("graphFormat", "json");
     valid.put("type", "backbone");
     valid.put("createdOn", String.valueOf(Instant.now().minusSeconds(60).getEpochSecond()));
 
@@ -278,7 +278,7 @@ class TrustedPartyApiComponentTest {
     assertEquals(HttpStatus.OK, documentRes.getStatusCode());
 
     JsonNode documentBody = parseJson(documentRes.getBody());
-    byte[] returnedDoc = Base64.getDecoder().decode(documentBody.path("documentText").asText());
+    byte[] returnedDoc = Base64.getDecoder().decode(documentBody.path("graph").asText());
     assertEquals(new String(scenario.documentBytes(), StandardCharsets.UTF_8), new String(returnedDoc, StandardCharsets.UTF_8));
     verifySignatureWithClientCertificate(returnedDoc, documentBody.path("signature").asText());
 
@@ -388,7 +388,7 @@ class TrustedPartyApiComponentTest {
   }
 
   @Test
-  void tokenAndDocumentRetrieval_wrongDocumentFormat_returnsNotFound() throws Exception {
+  void tokenAndDocumentRetrieval_wrongGraphFormat_returnsNotFound() throws Exception {
     GraphScenario scenario = issueGraphForNewOrganization();
 
     ResponseEntity<String> documentWrongFormat = http.getForEntity(
@@ -463,7 +463,7 @@ class TrustedPartyApiComponentTest {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("organizationId", "META-MALFORMED-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
     body.put("document", "@@@not-base64@@@");
-    body.put("documentFormat", "json");
+    body.put("graphFormat", "json");
     body.put("type", "meta");
     body.put("createdOn", String.valueOf(Instant.now().minusSeconds(60).getEpochSecond()));
 
@@ -503,7 +503,7 @@ class TrustedPartyApiComponentTest {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("organizationId", orgId);
     body.put("document", Base64.getEncoder().encodeToString(graphBytes));
-    body.put("documentFormat", "json");
+    body.put("graphFormat", "json");
     body.put("type", "graph");
     body.put("createdOn", String.valueOf(Instant.now().minusSeconds(60).getEpochSecond()));
     body.put("signature", signature);

@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.api.Token;
 
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,20 +15,20 @@ public class TokenRequestDTO {
   private String organizationId;
 
   /** Raw PROV graph Base64 OR JSON depending on format */
-  @NotBlank(message = "document is mandatory")
-  @JsonAlias({ "document", "graph" })
-  @JsonProperty("document")
-  private String document;
+  @NotBlank(message = "graph is mandatory")
+  @JsonAlias({ "graph" })
+  @JsonProperty("graph")
+  private String graph;
 
-  @NotBlank(message = "documentFormat is mandatory")
-  @JsonAlias({ "documentFormat", "doc_format" })
-  private String documentFormat;
+  @NotBlank(message = "graphFormat is mandatory")
+  @JsonAlias({ "graphFormat", "doc_format" })
+  private String graphFormat;
 
   private String signature;
 
   @NotNull(message = "Empty or incorrect type, must be one of [subgraph|meta|graph]!")
-  @JsonAlias({ "type", "documentType" })
-  private DocumentType documentType;
+  @JsonAlias({ "type", "graphType" })
+  private GraphType graphType;
 
   @NotBlank(message = "createdOn timestamp is mandatory")
   private String createdOn;
@@ -44,12 +44,12 @@ public class TokenRequestDTO {
     this.organizationId = organizationId;
   }
 
-  public String getDocument() {
-    return document;
+  public String getGraph() {
+    return graph;
   }
 
-  public void setDocument(String document) {
-    this.document = document;
+  public void setGraph(String graph) {
+    this.graph = graph;
   }
 
   public String getCreatedOn() {
@@ -60,12 +60,12 @@ public class TokenRequestDTO {
     this.createdOn = createdOn;
   }
 
-  public String getDocumentFormat() {
-    return documentFormat;
+  public String getGraphFormat() {
+    return graphFormat;
   }
 
-  public void setDocumentFormat(String documentFormat) {
-    this.documentFormat = documentFormat;
+  public void setGraphFormat(String graphFormat) {
+    this.graphFormat = graphFormat;
   }
 
   public String getSignature() {
@@ -76,11 +76,11 @@ public class TokenRequestDTO {
     this.signature = signature;
   }
 
-  public DocumentType getDocumentType() {
-    return documentType;
+  public GraphType getGraphType() {
+    return graphType;
   }
 
-  public void setDocumentType(DocumentType documentType) {
-    this.documentType = documentType;
+  public void setGraphType(GraphType graphType) {
+    this.graphType = graphType;
   }
 }
