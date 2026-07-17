@@ -1,0 +1,16 @@
+apiVersion: v2
+name: nro-service
+description: Helm chart for the NRO (Non-Repudiation of Origin) / Trusted Party service of the Common Provenance Framework.
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
+keywords:
+  - cpf
+  - provenance
+  - nro
+  - trusted-party
+home: https://github.com/Common-Provenance-Framework/NRO-Service
+sources:
+  - https://github.com/Common-Provenance-Framework/NRO-Service
+maintainers:
+  - name: Common Provenance Framework

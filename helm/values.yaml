@@ -1,0 +1,87 @@
+replicaCount: 1
+
+image:
+  repository: nro-service
+  tag: latest # TODO: Setup Dockerhub
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8020
+  targetPort: 8020
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+springProfilesActive: ""
+
+# The cert paths must resolve inside the mounted certs volume (see 'certs' below):
+#   - TP_PUBLIC_CERT_PATH / TP_PRIVATE_KEY_PATH: the Trusted Party's own signing identity.
+#   - TP_TRUSTED_CERTS_DIR: directory of CA/intermediate certs the TP trusts (org cert chain).
+config:
+  TP_ID: TrustedParty
+  TP_FQDN: cpf-trusted-party:8020
+  TP_DB_URL: jdbc:postgresql://nro-postgres:5432/trustedServicedb
+  TP_DB_USER: postgres
+  TP_TRUSTED_CERTS_DIR: /certs/trusted_certs
+  TP_PUBLIC_CERT_PATH: /certs/cert-dev/tp.pem
+  TP_PRIVATE_KEY_PATH: /certs/cert-dev/tp.key
+
+# Database password sourced from an existing Secret (leave name empty to skip; e.g. inject
+# via extraEnv instead). Maps the given secret keys to environment variables.
+existingSecret:
+  name: ""
+  keys:
+    TP_DB_PASSWORD: tp-db-password
+
+extraEnv: []
+
+# Trusted Party PKI material (its keypair + the trusted CA/intermediate certs) mounted as
+# files from an existing Secret. The secret layout must match the TP_*_PATH / TP_TRUSTED_CERTS_DIR
+# config above (relative to mountPath). Leave name empty to rely on material baked into the image.
+certs:
+  existingSecret:
+    name: ""
+    mountPath: /certs
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 6
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  failureThreshold: 6
+startupProbe: {}
