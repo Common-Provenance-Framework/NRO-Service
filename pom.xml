@@ -21,14 +21,14 @@
     <java.version>25</java.version>
 
     <openprovenance.version>2.2.3</openprovenance.version>
-    <springdoc.version>2.7.0</springdoc.version>
-    <swagger.version>2.2.29</swagger.version>
-    <bouncycastle.version>1.84</bouncycastle.version>
-    <nimbus.version>10.5</nimbus.version>
+    <springdoc.version>3.0.3</springdoc.version>
+    <swagger.version>2.2.52</swagger.version>
+    <bouncycastle.version>1.85</bouncycastle.version>
+    <nimbus.version>10.9.1</nimbus.version>
 
     <mockito.version>5.2.0</mockito.version>
 
-    <formatter.plugin.version>2.24.1</formatter.plugin.version>
+    <formatter.plugin.version>2.29.0</formatter.plugin.version>
   </properties>
 
   <dependencyManagement>
