@@ -2,11 +2,11 @@ package org.commonprovenance.framework.nro.api;
 
 public class InfoResponseDTO {
   private String id;
-  private String certificate;
+  private String clientCertificate;
 
-  public InfoResponseDTO(String id, String certificate) {
+  public InfoResponseDTO(String id, String clientCertificate) {
     this.id = id;
-    this.certificate = certificate;
+    this.clientCertificate = clientCertificate;
   }
 
   public String getId() {
@@ -17,11 +17,11 @@ public class InfoResponseDTO {
     this.id = id;
   }
 
-  public String getCertificate() {
-    return certificate;
+  public String getClientCertificate() {
+    return clientCertificate;
   }
 
-  public void setCertificate(String certificate) {
-    this.certificate = certificate;
+  public void setClientCertificate(String certificate) {
+    this.clientCertificate = certificate;
   }
 }
