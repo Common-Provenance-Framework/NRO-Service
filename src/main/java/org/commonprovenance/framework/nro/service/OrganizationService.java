@@ -79,6 +79,10 @@ public class OrganizationService {
       StoreCertOrganizationDTO body) {
     // Checks of request body are done in Controller using Jakarta validation
 
+    if (!Objects.equals(id, body.getId())) {
+      throw new OrganizationIdMismatchException(id);
+    }
+
     organizationRepository
         .findById(id)
         .orElseThrow(() -> new OrganizationNotFoundException(id));
