@@ -21,10 +21,10 @@ class OrganizationRepositoryTest {
   void save_validOrganization_persistsAndLoads() {
     Organization saved = saveOrganization("org-save");
 
-    Optional<Organization> reloaded = organizationRepository.findById(saved.getOrgName());
+    Optional<Organization> reloaded = organizationRepository.findById(saved.getId());
 
     assertThat(reloaded).isPresent();
-    assertThat(reloaded.get().getOrgName()).isEqualTo("org-save");
+    assertThat(reloaded.get().getId()).isEqualTo("org-save");
   }
 
   @Test
@@ -34,7 +34,7 @@ class OrganizationRepositoryTest {
     Optional<Organization> result = organizationRepository.findById("org-existing");
 
     assertThat(result).isPresent();
-    assertThat(result.get().getOrgName()).isEqualTo("org-existing");
+    assertThat(result.get().getId()).isEqualTo("org-existing");
   }
 
   @Test
@@ -60,9 +60,9 @@ class OrganizationRepositoryTest {
     assertThat(result).isFalse();
   }
 
-  private Organization saveOrganization(String orgName) {
+  private Organization saveOrganization(String id) {
     Organization organization = new Organization();
-    organization.setOrgName(orgName);
+    organization.setId(id);
     return organizationRepository.save(organization);
   }
 }

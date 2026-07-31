@@ -21,18 +21,17 @@ public class DocumentService {
   }
 
   public Document getDocument(
-      @NonNull String organizationName,
+      @NonNull String organizationId,
       String documentId,
-      String documentFormat) {
+      String graphFormat) {
     Organization organization = organizationRepository
-        .findById(organizationName)
-        .orElseThrow(() -> new OrganizationNotFoundException(organizationName));
-
+        .findById(organizationId)
+        .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
     return documentRepository
-        .findByIdentifierAndDocFormatAndOrganization(documentId, documentFormat, organization)
+        .findByIdAndGraphFormatAndOrganization(documentId, graphFormat, organization)
         .orElseThrow(() -> new DocumentNotFoundException(
             "No document with id " + documentId
-                + " in format " + documentFormat
-                + "exists for organization " + organizationName));
+                + " in format " + graphFormat
+                + "exists for organization " + organizationId));
   }
 }

@@ -28,6 +28,6 @@ class InfoServiceTest {
     InfoResponseDTO result = infoService.getInfo();
 
     assertThat(result.getId()).isEqualTo("tp-1");
-    assertThat(result.getCertificate()).isEqualTo("cert-data");
+    assertThat(result.getClientCertificate()).isEqualTo("cert-data");
   }
 }

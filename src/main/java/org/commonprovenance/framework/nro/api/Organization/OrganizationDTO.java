@@ -3,19 +3,19 @@ package org.commonprovenance.framework.nro.api.Organization;
 import java.util.List;
 
 public class OrganizationDTO {
-  private String organizationId;
+  private String id;
   private String clientCertificate;
   private List<String> revokedCertificates;
 
   public OrganizationDTO() {
   }
 
-  public String getOrganizationId() {
-    return organizationId;
+  public String getId() {
+    return id;
   }
 
-  public void setOrganizationId(String organizationId) {
-    this.organizationId = organizationId;
+  public void setId(String organizationId) {
+    this.id = organizationId;
   }
 
   public String getClientCertificate() {

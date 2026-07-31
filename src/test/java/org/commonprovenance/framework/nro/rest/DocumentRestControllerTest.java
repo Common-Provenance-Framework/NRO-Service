@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDateTime;
 
 import org.commonprovenance.framework.nro.api.Document.DocumentDTO;
-import org.commonprovenance.framework.nro.data.enums.DocumentType;
+import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.facade.DocumentFacade;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +30,11 @@ class DocumentRestControllerTest {
   void getDocument_returnsDocument() throws Exception {
     DocumentDTO dto = new DocumentDTO();
     dto.setIdentifier("doc-1");
-    dto.setDocumentFormat("json");
+    dto.setGraphFormat("json");
     dto.setCertDigest("cert-1");
     dto.setOrganizationId("org-1");
-    dto.setDocumentType(DocumentType.GRAPH);
-    dto.setDocumentText("{}");
+    dto.setGraphType(GraphType.GRAPH);
+    dto.setGraph("{}");
     dto.setCreatedOn(LocalDateTime.of(2024, 1, 1, 12, 0));
     dto.setSignature("sig");
 
@@ -44,8 +44,8 @@ class DocumentRestControllerTest {
         .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.identifier").value("doc-1"))
-        .andExpect(jsonPath("$.documentFormat").value("json"))
+        .andExpect(jsonPath("$.graphFormat").value("json"))
         .andExpect(jsonPath("$.organizationId").value("org-1"))
-        .andExpect(jsonPath("$.documentType").value("GRAPH"));
+        .andExpect(jsonPath("$.graphType").value("GRAPH"));
   }
 }

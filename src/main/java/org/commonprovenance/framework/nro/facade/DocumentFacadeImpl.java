@@ -21,7 +21,7 @@ public class DocumentFacadeImpl implements DocumentFacade {
   public DocumentDTO getDocument(
       @NonNull String organizationId,
       String documentId,
-      String documentFormat) {
-    return documentMapper.mapToDTO(documentService.getDocument(organizationId, documentId, documentFormat));
+      String graphFormat) {
+    return documentMapper.mapToDTO(documentService.getDocument(organizationId, documentId, graphFormat));
   }
 }

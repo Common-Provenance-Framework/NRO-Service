@@ -30,6 +30,6 @@ class InfoRestControllerTest {
     mockMvc.perform(get("/api/v1/info").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value("tp-1"))
-        .andExpect(jsonPath("$.certificate").value("cert-data"));
+        .andExpect(jsonPath("$.clientCertificate").value("cert-data"));
   }
 }

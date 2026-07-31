@@ -9,31 +9,31 @@ public class Organization {
 
   @Id
   @Column(length = 40)
-  private String orgName;
+  private String id;
 
-  public String getOrgName() {
-    return orgName;
+  public String getId() {
+    return id;
   }
 
-  public void setOrgName(String orgName) {
-    this.orgName = orgName;
+  public void setId(String id) {
+    this.id = id;
   }
 
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof Organization that))
       return false;
-    return Objects.equals(orgName, that.orgName);
+    return Objects.equals(id, that.id);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(orgName);
+    return Objects.hash(id);
   }
 
   @Override
   public String toString() {
     return "Organization{" +
-        "name=" + orgName + '}';
+        "id=" + id + '}';
   }
 }

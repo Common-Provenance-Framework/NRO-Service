@@ -42,7 +42,7 @@ class OrganizationRestControllerTest {
     mockMvc.perform(get("/api/v1/organizations").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
-        .andExpect(jsonPath("$[0].organizationId").value("org-1"));
+        .andExpect(jsonPath("$[0].id").value("org-1"));
   }
 
   @Test
@@ -53,7 +53,7 @@ class OrganizationRestControllerTest {
 
     mockMvc.perform(get("/api/v1/organizations/org-1").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.organizationId").value("org-1"));
+        .andExpect(jsonPath("$.id").value("org-1"));
   }
 
   @Test
@@ -86,7 +86,7 @@ class OrganizationRestControllerTest {
     mockMvc.perform(get("/api/v1/organizations/org-1/certs")
         .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.organizationId").value("org-1"));
+        .andExpect(jsonPath("$.id").value("org-1"));
   }
 
   @Test

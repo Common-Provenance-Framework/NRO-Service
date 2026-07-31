@@ -11,18 +11,18 @@ import java.util.Optional;
 @Repository
 public interface CertificateRepository extends JpaRepository<Certificate, String> {
 
-  List<Certificate> findByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
-      String orgName,
+  List<Certificate> findByOrganizationIdAndCertificateTypeAndIsRevoked(
+      String id,
       CertificateType certificateType,
       boolean isRevoked);
 
-  Certificate findFirstByOrganizationOrgNameAndCertificateTypeAndIsRevoked(
-      String orgName,
+  Certificate findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+      String id,
       CertificateType certificateType,
       boolean isRevoked);
 
-  Certificate findFirstByOrganizationOrgNameAndIsRevoked(
-      String orgName,
+  Certificate findFirstByOrganizationIdAndIsRevoked(
+      String id,
       boolean isRevoked);
 
   Optional<Certificate> findByCertDigest(String digest);

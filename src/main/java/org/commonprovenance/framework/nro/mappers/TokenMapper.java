@@ -11,7 +11,7 @@ public class TokenMapper {
 
   public TokenResponseDTO mapToDTO(Token token) {
     TokenResponseDTO tokenResponseDTO = new TokenResponseDTO();
-    tokenResponseDTO.setJwt(token.getTokenValue());
+    tokenResponseDTO.setJwt(token.getJwt());
     return tokenResponseDTO;
   }
 
