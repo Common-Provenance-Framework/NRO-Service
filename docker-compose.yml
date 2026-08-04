@@ -1,33 +1,60 @@
 services:
-  postgres:
-    image: postgres:16
+  cpf-nro-postgres:
+    image: postgres:18-alpine
+    container_name: cpf-nro-postgres
     environment:
-      POSTGRES_DB: trustedServicedb
+      POSTGRES_DB: nrodb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - 5432:5432
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
+    networks:
+      cpf-net:
+        aliases:
+          - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nrodb -h 127.0.0.1 -p 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  nro-service:
+  cpf-nro-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
-    depends_on:
-      - postgres
+      dockerfile: Dockerfile
+    container_name: cpf-nro-service
     environment:
-      TP_DB_URL: jdbc:postgresql://postgres:5432/trustedServicedb
+      TP_DB_URL: jdbc:postgresql://cpf-nro-postgres:5432/nrodb
       TP_DB_USER: postgres
       TP_DB_PASSWORD: postgres
       TP_ID: TrustedParty
       TP_FQDN: trusted-party:8020
-      TP_TRUSTED_CERTS_DIR: /certs/trusted_certs
-      TP_PUBLIC_CERT_PATH: /certs/cert-dev/tp.pem
-      TP_PRIVATE_KEY_PATH: /certs/cert-dev/tp.key
+      TP_TRUSTED_CERTS_DIR: /certs/trusted
+      TP_PUBLIC_CERT_PATH: /certs/service/nro.pem
+      TP_PRIVATE_KEY_PATH: /certs/service/nro.key
     ports:
-      - "8020:8020"
+      - 8082:8020
     volumes:
       - ./certs:/certs:ro
+    networks:
+      cpf-net:
+        aliases:
+          - nro-service
+    depends_on:
+      cpf-nro-postgres:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      timeout: 5s
+      retries: 10
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:8020/api/v1/info || exit 1"]
+
+networks:
+  cpf-net:
+    name: cpf-net
+    driver: bridge
+
 volumes:
-  postgres-data:
+  postgres_data:
