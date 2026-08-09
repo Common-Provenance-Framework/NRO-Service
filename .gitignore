@@ -32,3 +32,4 @@ replay_pid*
 ### Configuration ###
 .env
 certs/
+.idea/
