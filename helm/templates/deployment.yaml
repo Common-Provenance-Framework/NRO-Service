@@ -88,6 +88,13 @@ spec:
         - name: certs
           secret:
             secretName: {{ .Values.certs.existingSecret.name }}
+            {{- with .Values.certs.existingSecret.items }}
+            items:
+              {{- range $key, $path := . }}
+              - key: {{ $key }}
+                path: {{ $path }}
+              {{- end }}
+            {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
