@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: cerit.io/commonprovenanceframework/nro-service
-  tag: latest
+  tag: ""
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
