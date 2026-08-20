@@ -205,17 +205,22 @@ class TokenServiceTest {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
     body.setCreatedOn(LocalDateTime.now().plusHours(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
-    assertThatThrownBy(() -> tokenService.issueToken(body))
+    TokenService serviceSpy = spy(tokenService);
+    doReturn(true).when(serviceSpy).verifySignature(body);
+
+    assertThatThrownBy(() -> serviceSpy.issueToken(body))
         .isInstanceOf(InvalidTimestampException.class);
   }
 
   @Test
-  void issueToken_missingOrganization_throwsOrganizationNotFoundException() {
-    TokenRequestDTO body = buildRequest(GraphType.GRAPH);
+  void issueTokenAndStoreDoc_missingOrganization_throwsOrganizationNotFoundException() {
+    TokenRequestDTO body = buildRequestWithBundleId(GraphType.GRAPH, "b1");
+
+    body.setOrganizationId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> tokenService.issueToken(body))
+    assertThatThrownBy(() -> tokenService.issueTokenAndStoreDoc(body))
         .isInstanceOf(OrganizationNotFoundException.class)
         .hasMessageContaining("org-1");
   }
@@ -223,10 +228,6 @@ class TokenServiceTest {
   @Test
   void issueToken_invalidSignature_throwsSignatureVerificationException() {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
-    Organization organization = new Organization();
-    organization.setId("org-1");
-
-    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
 
     TokenService serviceSpy = spy(tokenService);
     doReturn(false).when(serviceSpy).verifySignature(body);
@@ -238,11 +239,7 @@ class TokenServiceTest {
   @Test
   void issueToken_validRequest_callsIssueTokenAndStoreDoc() {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
-    Organization organization = new Organization();
-    organization.setId("org-1");
     Token expected = new Token();
-
-    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
 
     TokenService serviceSpy = spy(tokenService);
     doReturn(true).when(serviceSpy).verifySignature(body);
@@ -279,10 +276,9 @@ class TokenServiceTest {
     Token expected = new Token();
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(documentRepository.findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
+    when(documentRepository.findByIdentifierAndGraphFormatAndOrganization(
         anyString(),
         eq("provn"),
-        eq(GraphType.GRAPH),
         eq(organization))).thenReturn(Optional.of(document));
     when(tokenRepository.findByDocument(document)).thenReturn(List.of(expected));
 
@@ -299,10 +295,9 @@ class TokenServiceTest {
     organization.setId("org-1");
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(documentRepository.findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
+    when(documentRepository.findByIdentifierAndGraphFormatAndOrganization(
         anyString(),
         eq("provn"),
-        eq(GraphType.GRAPH),
         eq(organization))).thenReturn(Optional.empty());
     when(certificateRepository.findFirstByOrganizationIdAndIsRevoked("org-1", false))
         .thenReturn(null);
@@ -313,22 +308,9 @@ class TokenServiceTest {
   }
 
   @Test
-  void verifySignature_missingOrganization_throwsOrganizationNotFoundException() {
-    TokenRequestDTO body = buildRequest(GraphType.GRAPH);
-    when(organizationRepository.findById("org-1")).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> tokenService.verifySignature(body))
-        .isInstanceOf(OrganizationNotFoundException.class)
-        .hasMessageContaining("org-1");
-  }
-
-  @Test
   void verifySignature_missingCertificate_throwsCertificateNotFoundException() {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
-    Organization organization = new Organization();
-    organization.setId("org-1");
 
-    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
@@ -342,12 +324,9 @@ class TokenServiceTest {
   @Test
   void verifySignature_invalidCertificate_throwsSignatureVerificationException() {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
-    Organization organization = new Organization();
-    organization.setId("org-1");
     org.commonprovenance.framework.nro.data.model.Certificate certificate = new org.commonprovenance.framework.nro.data.model.Certificate();
     certificate.setCert("not-a-certificate");
 
-    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
@@ -364,8 +343,6 @@ class TokenServiceTest {
     X509Certificate x509 = createSelfSignedCertificate(keyPair);
     String certPem = toPem(x509);
 
-    Organization organization = new Organization();
-    organization.setId("org-1");
     org.commonprovenance.framework.nro.data.model.Certificate certificate = new org.commonprovenance.framework.nro.data.model.Certificate();
     certificate.setCert(certPem);
 
@@ -381,7 +358,6 @@ class TokenServiceTest {
     body.setGraph(Base64.getEncoder().encodeToString(graphBytes));
     body.setSignature(signatureB64);
 
-    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
@@ -447,6 +423,9 @@ class TokenServiceTest {
 
   @Test
   void issueTokenAndStoreDoc_metaSignsTokenData() throws Exception {
+    Organization organization = new Organization();
+    organization.setId("org-1");
+
     KeyPair keyPair = generateEcKeyPair();
     X509Certificate x509 = createSelfSignedCertificate(keyPair);
     String certPem = toPem(x509);
@@ -456,6 +435,7 @@ class TokenServiceTest {
     Files.writeString(keyPath, privateKeyPem, StandardCharsets.UTF_8);
     keyPath.toFile().deleteOnExit();
 
+    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.getPrivateKeyPath()).thenReturn(keyPath.toString());
     when(appProperties.getCertificate()).thenReturn(certPem);
     when(appProperties.getId()).thenReturn("tp-id");
@@ -477,15 +457,10 @@ class TokenServiceTest {
 
     Token token = tokenService.issueTokenAndStoreDoc(body);
 
-    Document doc = token.getDocument();
-
     SignedJWT signedJWT = SignedJWT.parse(token.getJwt());
     assertThat(signedJWT.verify(new ECDSAVerifier((ECPublicKey) keyPair.getPublic()))).isTrue();
 
     assertThat(signedJWT.getJWTClaimsSet().getClaimAsString("hash_alg")).isEqualTo(HashFunction.SHA256.getValue());
-    assertThat(doc.getSignature()).isNull();
-    assertThat(doc.getOrganization().getId()).isEqualTo("org-1");
-    assertThat(doc.getCreatedOn()).isEqualTo(createdOn);
     assertThat(token.getJwt()).matches("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$");
 
     String expectedHash = sha256Hex(Base64.getDecoder().decode(body.getGraph()));

@@ -140,30 +140,14 @@ public class TokenService {
       }
     }
 
-    if (body.getGraphType() == GraphType.GRAPH &&
-        (body.getSignature() == null || body.getSignature().isBlank())) {
-      throw new MissingSignatureException("Mandatory field [\"signature\"] not present in request!");
+    if (body.getGraphType() == GraphType.GRAPH) {
+      if (!verifySignature(body))
+        throw new SignatureVerificationException("Invalid signature to the graph!");
     }
 
     LocalDateTime createdOn = parseLocalDateTime(body.getCreatedOn());
     if (createdOn.isAfter(LocalDateTime.now())) {
       throw new InvalidTimestampException("Incorrect timestamp for the document");
-    }
-
-    if (body.getGraphType() == GraphType.GRAPH ||
-        body.getGraphType() == GraphType.BACKBONE ||
-        body.getGraphType() == GraphType.DOMAIN_SPECIFIC) {
-
-      organizationRepository
-          .findById(Objects.requireNonNull(body.getOrganizationId()))
-          .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
-    }
-
-    if (body.getGraphType() == GraphType.GRAPH) {
-      boolean verified = verifySignature(body);
-      if (!verified) {
-        throw new SignatureVerificationException("Invalid signature to the graph!");
-      }
     }
 
     return issueTokenAndStoreDoc(body);
@@ -177,24 +161,23 @@ public class TokenService {
     Bundle bundle = extractSingleBundle(provDocument);
     String bundleIdentifier = resolveBundleIdentifier(bundle);
 
+    Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
+        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
+
     if (body.getGraphType() == GraphType.DOMAIN_SPECIFIC
         || body.getGraphType() == GraphType.BACKBONE) {
       // TODO: retrieve original bundle and implement subgraph check - was not implemented in Python version
       checkIsSubgraph(bundle, null);
     }
 
-    if (body.getGraphType() == GraphType.META) {
-      return buildMetaToken(body, bundle);
+    if (body.getGraphType() != GraphType.GRAPH) {
+      return buildToken(body, bundleIdentifier);
     }
 
-    Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
-        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
-
     Optional<Document> existingDoc = documentRepository
-        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
+        .findByIdentifierAndGraphFormatAndOrganization(
             bundleIdentifier,
             body.getGraphFormat(),
-            body.getGraphType(),
             org);
 
     if (existingDoc.isPresent()) {
@@ -224,15 +207,15 @@ public class TokenService {
     doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
     doc.setSignature(body.getGraphType() == GraphType.GRAPH ? body.getSignature() : null);
     documentRepository.save(doc);
-    Token token = buildToken(body, doc, bundleIdentifier);
+    Token token = buildToken(body, bundleIdentifier);
+    token.setDocument(doc);
     tokenRepository.save(Objects.requireNonNull(token));
     return token;
   }
 
   public boolean verifySignature(TokenRequestDTO body) {
-    organizationRepository
-        .findById(Objects.requireNonNull(body.getOrganizationId()))
-        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
+    if (body.getSignature() == null || body.getSignature().isBlank())
+      throw new MissingSignatureException("Mandatory field [\"signature\"] not present in request!");
 
     Certificate cert = certificateRepository
         .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
@@ -375,28 +358,7 @@ public class TokenService {
     // TODO: Implement real subgraph validation - was not implemented in Python version
   }
 
-  private Token buildMetaToken(TokenRequestDTO body, Bundle bundle) {
-    String bundleIdentifier = resolveBundleIdentifier(bundle);
-
-    Document doc = new Document();
-    doc.setId(resolveBundleId(bundle));
-    doc.setIdentifier(bundleIdentifier);
-    doc.setGraphFormat(body.getGraphFormat());
-    doc.setGraphType(body.getGraphType());
-    doc.setGraph(body.getGraph());
-    doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
-    doc.setSignature(null);
-
-    Organization org = new Organization();
-    org.setId(body.getOrganizationId());
-    doc.setOrganization(org);
-
-    Token token = buildToken(body, doc, bundleIdentifier);
-    token.setDocument(doc);
-    return token;
-  }
-
-  private Token buildToken(TokenRequestDTO body, Document doc, String bundleIdentifier) {
+  private Token buildToken(TokenRequestDTO body, String bundleIdentifier) {
     LocalDateTime tokenTimestamp = LocalDateTime.now();
     String documentDigest = sha256Hex(Base64.getDecoder().decode(body.getGraph()));
 
@@ -408,7 +370,6 @@ public class TokenService {
         bundleIdentifier);
 
     Token token = new Token();
-    token.setDocument(doc);
     token.setType(body.getGraphType().name());
     token.setJwt(tokenValue);
     return token;
