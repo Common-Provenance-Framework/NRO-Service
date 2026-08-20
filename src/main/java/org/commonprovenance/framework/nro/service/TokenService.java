@@ -150,15 +150,6 @@ public class TokenService {
       throw new InvalidTimestampException("Incorrect timestamp for the document");
     }
 
-    if (body.getGraphType() == GraphType.GRAPH ||
-        body.getGraphType() == GraphType.BACKBONE ||
-        body.getGraphType() == GraphType.DOMAIN_SPECIFIC) {
-
-      organizationRepository
-          .findById(Objects.requireNonNull(body.getOrganizationId()))
-          .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
-    }
-
     return issueTokenAndStoreDoc(body);
   }
 
@@ -170,6 +161,9 @@ public class TokenService {
     Bundle bundle = extractSingleBundle(provDocument);
     String bundleIdentifier = resolveBundleIdentifier(bundle);
 
+    Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
+        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
+
     if (body.getGraphType() == GraphType.DOMAIN_SPECIFIC
         || body.getGraphType() == GraphType.BACKBONE) {
       // TODO: retrieve original bundle and implement subgraph check - was not implemented in Python version
@@ -179,9 +173,6 @@ public class TokenService {
     if (body.getGraphType() == GraphType.META) {
       return buildMetaToken(body, bundle);
     }
-
-    Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
-        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
 
     Optional<Document> existingDoc = documentRepository
         .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
