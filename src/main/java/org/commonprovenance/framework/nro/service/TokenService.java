@@ -140,9 +140,9 @@ public class TokenService {
       }
     }
 
-    if (body.getGraphType() == GraphType.GRAPH &&
-        (body.getSignature() == null || body.getSignature().isBlank())) {
-      throw new MissingSignatureException("Mandatory field [\"signature\"] not present in request!");
+    if (body.getGraphType() == GraphType.GRAPH) {
+      if (!verifySignature(body))
+        throw new SignatureVerificationException("Invalid signature to the graph!");
     }
 
     LocalDateTime createdOn = parseLocalDateTime(body.getCreatedOn());
@@ -230,9 +230,8 @@ public class TokenService {
   }
 
   public boolean verifySignature(TokenRequestDTO body) {
-    organizationRepository
-        .findById(Objects.requireNonNull(body.getOrganizationId()))
-        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
+    if (body.getSignature() == null || body.getSignature().isBlank())
+      throw new MissingSignatureException("Mandatory field [\"signature\"] not present in request!");
 
     Certificate cert = certificateRepository
         .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
