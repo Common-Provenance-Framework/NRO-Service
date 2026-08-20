@@ -175,10 +175,9 @@ public class TokenService {
     }
 
     Optional<Document> existingDoc = documentRepository
-        .findByIdentifierAndGraphFormatAndGraphTypeAndOrganization(
+        .findByIdentifierAndGraphFormatAndOrganization(
             bundleIdentifier,
             body.getGraphFormat(),
-            body.getGraphType(),
             org);
 
     if (existingDoc.isPresent()) {
@@ -208,7 +207,8 @@ public class TokenService {
     doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
     doc.setSignature(body.getGraphType() == GraphType.GRAPH ? body.getSignature() : null);
     documentRepository.save(doc);
-    Token token = buildToken(body, doc, bundleIdentifier);
+    Token token = buildToken(body, bundleIdentifier);
+    token.setDocument(doc);
     tokenRepository.save(Objects.requireNonNull(token));
     return token;
   }
@@ -358,7 +358,7 @@ public class TokenService {
     // TODO: Implement real subgraph validation - was not implemented in Python version
   }
 
-  private Token buildToken(TokenRequestDTO body, Document doc, String bundleIdentifier) {
+  private Token buildToken(TokenRequestDTO body, String bundleIdentifier) {
     LocalDateTime tokenTimestamp = LocalDateTime.now();
     String documentDigest = sha256Hex(Base64.getDecoder().decode(body.getGraph()));
 
@@ -370,7 +370,6 @@ public class TokenService {
         bundleIdentifier);
 
     Token token = new Token();
-    token.setDocument(doc);
     token.setType(body.getGraphType().name());
     token.setJwt(tokenValue);
     return token;

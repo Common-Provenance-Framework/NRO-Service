@@ -29,5 +29,10 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
       GraphType graphType,
       Organization organization);
 
+  Optional<Document> findByIdentifierAndGraphFormatAndOrganization(
+      String identifier,
+      String graphFormat,
+      Organization organization);
+
   List<Document> findByOrganization(Organization organization);
 }
