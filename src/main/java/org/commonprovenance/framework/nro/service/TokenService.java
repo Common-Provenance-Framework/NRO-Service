@@ -170,8 +170,8 @@ public class TokenService {
       checkIsSubgraph(bundle, null);
     }
 
-    if (body.getGraphType() == GraphType.META) {
-      return buildMetaToken(body, bundle);
+    if (body.getGraphType() != GraphType.GRAPH) {
+      return buildToken(body, bundleIdentifier);
     }
 
     Optional<Document> existingDoc = documentRepository
@@ -356,27 +356,6 @@ public class TokenService {
 
   private void checkIsSubgraph(Bundle provBundle, Bundle originalBundle) {
     // TODO: Implement real subgraph validation - was not implemented in Python version
-  }
-
-  private Token buildMetaToken(TokenRequestDTO body, Bundle bundle) {
-    String bundleIdentifier = resolveBundleIdentifier(bundle);
-
-    Document doc = new Document();
-    doc.setId(resolveBundleId(bundle));
-    doc.setIdentifier(bundleIdentifier);
-    doc.setGraphFormat(body.getGraphFormat());
-    doc.setGraphType(body.getGraphType());
-    doc.setGraph(body.getGraph());
-    doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
-    doc.setSignature(null);
-
-    Organization org = new Organization();
-    org.setId(body.getOrganizationId());
-    doc.setOrganization(org);
-
-    Token token = buildToken(body, doc, bundleIdentifier);
-    token.setDocument(doc);
-    return token;
   }
 
   private Token buildToken(TokenRequestDTO body, Document doc, String bundleIdentifier) {
