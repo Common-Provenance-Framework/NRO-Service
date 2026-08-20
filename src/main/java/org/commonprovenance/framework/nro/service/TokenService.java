@@ -159,13 +159,6 @@ public class TokenService {
           .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
     }
 
-    if (body.getGraphType() == GraphType.GRAPH) {
-      boolean verified = verifySignature(body);
-      if (!verified) {
-        throw new SignatureVerificationException("Invalid signature to the graph!");
-      }
-    }
-
     return issueTokenAndStoreDoc(body);
   }
 
