@@ -22,7 +22,7 @@
 
     <openprovenance.version>2.2.4</openprovenance.version>
     <springdoc.version>3.1.0</springdoc.version>
-    <swagger.version>2.2.53</swagger.version>
+    <swagger.version>2.2.54</swagger.version>
     <bouncycastle.version>1.85</bouncycastle.version>
     <nimbus.version>10.9.1</nimbus.version>
 
