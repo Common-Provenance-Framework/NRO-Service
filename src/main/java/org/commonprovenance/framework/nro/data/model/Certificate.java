@@ -2,10 +2,7 @@ package org.commonprovenance.framework.nro.data.model;
 
 import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
 import java.util.Objects;
-
-import org.commonprovenance.framework.nro.data.enums.CertificateType;
 
 @Entity
 public class Certificate {
@@ -16,18 +13,6 @@ public class Certificate {
 
   @Column(columnDefinition = "TEXT")
   private String cert;
-
-  @Enumerated(EnumType.STRING)
-  private CertificateType certificateType;
-
-  private boolean isRevoked;
-
-  // TODO: check if Date isnt better
-  private LocalDateTime received_on;
-
-  @ManyToOne
-  @JoinColumn(name = "organization", referencedColumnName = "id")
-  private Organization organization;
 
   public String getCertDigest() {
     return certDigest;
@@ -45,63 +30,24 @@ public class Certificate {
     this.cert = cert;
   }
 
-  public CertificateType getCertificateType() {
-    return certificateType;
-  }
-
-  public void setCertificateType(CertificateType certificateType) {
-    this.certificateType = certificateType;
-  }
-
-  public boolean getIsRevoked() {
-    return isRevoked;
-  }
-
-  public void setIsRevoked(boolean revoked) {
-    isRevoked = revoked;
-  }
-
-  public LocalDateTime getReceived_on() {
-    return received_on;
-  }
-
-  public void setReceived_on(LocalDateTime received_on) {
-    this.received_on = received_on;
-  }
-
-  public Organization getOrganization() {
-    return organization;
-  }
-
-  public void setOrganization(Organization organization) {
-    this.organization = organization;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof Certificate that))
       return false;
-    return isRevoked == that.isRevoked
-        && Objects.equals(certDigest, that.certDigest)
-        && Objects.equals(cert, that.cert)
-        && certificateType == that.certificateType
-        && Objects.equals(organization, that.organization);
+    return Objects.equals(this.certDigest, that.certDigest)
+        && Objects.equals(this.cert, that.cert);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(certDigest, cert, certificateType, isRevoked, organization);
+    return Objects.hash(this.certDigest, this.cert);
   }
 
   @Override
   public String toString() {
     return "Certificate{" +
-        "certDigest='" + certDigest + '\'' +
-        ", cert='" + cert + '\'' +
-        ", certificateType=" + certificateType +
-        ", isRevoked=" + isRevoked +
-        ", received_on=" + received_on +
-        ", organization=" + organization +
+        "certDigest='" + this.certDigest + '\'' +
+        ", cert='" + this.cert + '\'' +
         '}';
   }
 }
