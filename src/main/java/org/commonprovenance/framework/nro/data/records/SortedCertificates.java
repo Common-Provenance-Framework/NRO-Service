@@ -2,9 +2,9 @@ package org.commonprovenance.framework.nro.data.records;
 
 import java.util.List;
 
-import org.commonprovenance.framework.nro.data.model.Certificate;
+import org.commonprovenance.framework.nro.data.model.OrganizationCertificate;
 
 public record SortedCertificates(
-    Certificate activeCertificate,
-    List<Certificate> revokedCertificates) {
+    OrganizationCertificate activeCertificate,
+    List<OrganizationCertificate> revokedCertificates) {
 }
