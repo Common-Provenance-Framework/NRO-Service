@@ -1,26 +1,28 @@
 package org.commonprovenance.framework.nro.service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.commonprovenance.framework.nro.api.Organization.StoreCertOrganizationDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Organization;
+import org.commonprovenance.framework.nro.data.model.OrganizationCertificate;
 import org.commonprovenance.framework.nro.data.records.OrganizationAndCertificates;
 import org.commonprovenance.framework.nro.data.records.SortedCertificates;
 import org.commonprovenance.framework.nro.data.repository.CertificateRepository;
+import org.commonprovenance.framework.nro.data.repository.OrganizationCertificateRepository;
 import org.commonprovenance.framework.nro.data.repository.OrganizationRepository;
 import org.commonprovenance.framework.nro.exceptions.CertificateVerificationException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationAlreadyExistsException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationIdMismatchException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.utils.TrustedPartyUtils;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +31,17 @@ public class OrganizationService {
 
   private final OrganizationRepository organizationRepository;
   private final CertificateRepository certificateRepository;
+  private final OrganizationCertificateRepository organizationCertificateRepository;
   private final AppProperties appProperties;
 
-  public OrganizationService(OrganizationRepository organizationRepository,
+  public OrganizationService(
+      OrganizationRepository organizationRepository,
       CertificateRepository certificateRepository,
+      OrganizationCertificateRepository organizationCertificateRepository,
       AppProperties appProperties) {
     this.organizationRepository = organizationRepository;
     this.certificateRepository = certificateRepository;
+    this.organizationCertificateRepository = organizationCertificateRepository;
     this.appProperties = appProperties;
   }
 
@@ -124,105 +130,87 @@ public class OrganizationService {
   }
 
   @Transactional
-  protected void storeOrganizationAndCerts(String id, String clientCertificate, List<String> intermediateCertificates) {
+  protected void storeOrganizationAndCerts(
+      String id,
+      String clientCertificate,
+      List<String> intermediateCertificates) {
     Organization org = new Organization();
     org.setId(id);
     organizationRepository.save(org);
 
-    Certificate clientCert = new Certificate();
-    clientCert.setCertDigest(TrustedPartyUtils.computeCertificateDigest(clientCertificate));
-    clientCert.setCert(clientCertificate);
-    clientCert.setCertificateType(CertificateType.CLIENT);
-    clientCert.setIsRevoked(false);
-    clientCert.setReceived_on(LocalDateTime.now());
-    clientCert.setOrganization(org);
-    certificateRepository.save(clientCert);
+    saveAssociation(org, clientCertificate, CertificateType.CLIENT);
 
-    for (String intermediateCertificate : intermediateCertificates) {
-      Certificate intermediateCert = new Certificate();
-      intermediateCert.setCertDigest(TrustedPartyUtils.computeCertificateDigest(intermediateCertificate));
-      intermediateCert.setCert(intermediateCertificate);
-      intermediateCert.setCertificateType(CertificateType.INTERMEDIATE);
-      intermediateCert.setIsRevoked(false);
-      intermediateCert.setReceived_on(LocalDateTime.now());
-      intermediateCert.setOrganization(org);
-      certificateRepository.save(intermediateCert);
-    }
+    intermediateCertificates.forEach(saveAssociation(org, CertificateType.INTERMEDIATE));
   }
 
   @Transactional
   protected void revokeAndUpdateCertifacates(
-      @NonNull String id,
+      String id,
       String clientCertificate,
       List<String> intermediateCertificates) {
     revokeAllStoredCertificates(id);
 
     Organization org = organizationRepository.findById(id).orElseThrow(() -> new OrganizationNotFoundException(id));
-    Certificate clientCert = new Certificate();
-    clientCert.setCertDigest(TrustedPartyUtils.computeCertificateDigest(clientCertificate));
-    clientCert.setCert(clientCertificate);
-    clientCert.setCertificateType(CertificateType.CLIENT);
-    clientCert.setIsRevoked(false);
-    clientCert.setReceived_on(LocalDateTime.now());
-    clientCert.setOrganization(org);
-    certificateRepository.save(clientCert);
+    saveAssociation(org, clientCertificate, CertificateType.CLIENT);
 
-    for (String intermediateCert : intermediateCertificates) {
-      String digest = TrustedPartyUtils.computeCertificateDigest(intermediateCert);
-
-      Optional<Certificate> existingCertOpt = certificateRepository.findByCertDigest(digest);
-
-      if (existingCertOpt.isPresent()) {
-        Certificate existingCert = existingCertOpt.get();
-        existingCert.setIsRevoked(false);
-        certificateRepository.save(existingCert);
-      } else {
-        // Otherwise, insert as new intermediate certificate
-        Certificate intermediateCertEntity = new Certificate();
-        intermediateCertEntity.setCertDigest(digest);
-        intermediateCertEntity.setCert(intermediateCert);
-        intermediateCertEntity.setCertificateType(CertificateType.INTERMEDIATE);
-        intermediateCertEntity.setIsRevoked(false);
-        intermediateCertEntity.setReceived_on(LocalDateTime.now());
-        intermediateCertEntity.setOrganization(org);
-        certificateRepository.save(intermediateCertEntity);
-      }
-    }
+    intermediateCertificates.forEach(saveAssociation(org, CertificateType.INTERMEDIATE));
   }
 
   @Transactional
   protected void revokeAllStoredCertificates(String id) {
-    List<Certificate> clientCertificates = certificateRepository
-        .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.CLIENT, false);
-
-    List<Certificate> intermediateCertificates = certificateRepository
-        .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.INTERMEDIATE, false);
-
-    for (Certificate certificate : clientCertificates) {
-      certificate.setIsRevoked(true);
-      certificateRepository.save(certificate);
-    }
-
-    for (Certificate intermediateCertificate : intermediateCertificates) {
-      intermediateCertificate.setIsRevoked(true);
-      certificateRepository.save(intermediateCertificate);
-    }
+    Stream.concat(
+        organizationCertificateRepository
+            .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.CLIENT, false)
+            .stream(),
+        organizationCertificateRepository
+            .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.INTERMEDIATE, false)
+            .stream())
+        .forEach(certificate -> {
+          certificate.setIsRevoked(true);
+          organizationCertificateRepository.save(certificate);
+        });
   }
 
   @Transactional(readOnly = true)
   private SortedCertificates getSortedCertificates(String id) {
-    List<Certificate> revokedCerts = certificateRepository
+    List<OrganizationCertificate> revokedCerts = organizationCertificateRepository
         .findByOrganizationIdAndCertificateTypeAndIsRevoked(
             id,
             CertificateType.CLIENT,
             true);
 
-    Certificate activeCert = certificateRepository
+    OrganizationCertificate activeCert = organizationCertificateRepository
         .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
             id,
             CertificateType.CLIENT,
-            false);
+            false)
+        .orElse(null);
 
     return new SortedCertificates(activeCert, revokedCerts);
+  }
+
+  private Consumer<String> saveAssociation(Organization organization, CertificateType certificateType) {
+    return (String certificateData) -> this.saveAssociation(organization, certificateData, certificateType);
+  }
+
+  private void saveAssociation(Organization organization, String certificateData, CertificateType certificateType) {
+    String digest = TrustedPartyUtils.computeCertificateDigest(certificateData);
+    Certificate certificate = certificateRepository.findByCertDigest(digest)
+        .orElseGet(() -> {
+          Certificate newCertificate = new Certificate();
+          newCertificate.setCertDigest(digest);
+          newCertificate.setCert(certificateData);
+          return certificateRepository.save(newCertificate);
+        });
+
+    OrganizationCertificate association = organizationCertificateRepository
+        .findByOrganizationIdAndCertificate_CertDigest(organization.getId(), digest)
+        .map(organizationCertificate -> {
+          organizationCertificate.setIsRevoked(false);
+          return organizationCertificate;
+        })
+        .orElseGet(() -> new OrganizationCertificate(organization, certificate, certificateType));
+
+    organizationCertificateRepository.save(association);
   }
 }

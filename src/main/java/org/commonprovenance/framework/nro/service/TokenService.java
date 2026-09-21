@@ -46,9 +46,10 @@ import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
+import org.commonprovenance.framework.nro.data.model.OrganizationCertificate;
 import org.commonprovenance.framework.nro.data.model.Token;
-import org.commonprovenance.framework.nro.data.repository.CertificateRepository;
 import org.commonprovenance.framework.nro.data.repository.DocumentRepository;
+import org.commonprovenance.framework.nro.data.repository.OrganizationCertificateRepository;
 import org.commonprovenance.framework.nro.data.repository.OrganizationRepository;
 import org.commonprovenance.framework.nro.data.repository.TokenRepository;
 import org.commonprovenance.framework.nro.exceptions.CertificateNotFoundException;
@@ -60,9 +61,9 @@ import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundExcepti
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
 import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
 import org.commonprovenance.framework.nro.utils.prov.ProvToolboxUtils;
+import org.jspecify.annotations.NonNull;
 import org.openprovenance.prov.model.Bundle;
 import org.openprovenance.prov.model.StatementOrBundle;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,18 +81,18 @@ public class TokenService {
   private final TokenRepository tokenRepository;
   private final OrganizationRepository organizationRepository;
   private final DocumentRepository documentRepository;
-  private final CertificateRepository certificateRepository;
+  private final OrganizationCertificateRepository organizationCertificateRepository;
   private final AppProperties appProperties;
 
   public TokenService(TokenRepository tokenRepository,
       OrganizationRepository organizationRepository,
       DocumentRepository documentRepository,
-      CertificateRepository certificateRepository,
+      OrganizationCertificateRepository organizationCertificateRepository,
       AppProperties appProperties) {
     this.tokenRepository = tokenRepository;
     this.organizationRepository = organizationRepository;
     this.documentRepository = documentRepository;
-    this.certificateRepository = certificateRepository;
+    this.organizationCertificateRepository = organizationCertificateRepository;
     this.appProperties = appProperties;
   }
 
@@ -187,21 +188,19 @@ public class TokenService {
       }
     }
 
-    Certificate cert = certificateRepository
+    Certificate certificate = organizationCertificateRepository
         .findFirstByOrganizationIdAndIsRevoked(
             body.getOrganizationId(),
-            false);
-
-    if (cert == null) {
-      throw new CertificateNotFoundException(body.getOrganizationId());
-    }
+            false)
+        .map(OrganizationCertificate::getCertificate)
+        .orElseThrow(() -> new CertificateNotFoundException(body.getOrganizationId()));
 
     Document doc = new Document();
     doc.setId(resolveBundleId(bundle));
     doc.setIdentifier(bundleIdentifier);
     doc.setGraphFormat(body.getGraphFormat());
     doc.setOrganization(org);
-    doc.setCertificate(cert);
+    doc.setCertificate(certificate);
     doc.setGraphType(body.getGraphType());
     doc.setGraph(body.getGraph());
     doc.setCreatedOn(parseLocalDateTime(body.getCreatedOn()));
@@ -217,30 +216,27 @@ public class TokenService {
     if (body.getSignature() == null || body.getSignature().isBlank())
       throw new MissingSignatureException("Mandatory field [\"signature\"] not present in request!");
 
-    Certificate cert = certificateRepository
+    String cert = organizationCertificateRepository
         .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
             body.getOrganizationId(),
             CertificateType.CLIENT,
-            false);
-
-    if (cert == null) {
-      throw new CertificateNotFoundException(body.getOrganizationId());
-    }
-
-    String graph = body.getGraph();
+            false)
+        .map(OrganizationCertificate::getCertificate)
+        .map(Certificate::getCert)
+        .orElseThrow(() -> new CertificateNotFoundException(body.getOrganizationId()));
 
     try {
       CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
       X509Certificate x509Cert = (X509Certificate) cf.generateCertificate(
-          new ByteArrayInputStream(cert.getCert().getBytes(StandardCharsets.UTF_8)));
+          new ByteArrayInputStream(cert.getBytes(StandardCharsets.UTF_8)));
 
       PublicKey publicKey = x509Cert.getPublicKey();
 
       Signature signature = Signature.getInstance("SHA256withECDSA");
       signature.initVerify(publicKey);
 
-      signature.update(Base64.getDecoder().decode(graph));
+      signature.update(Base64.getDecoder().decode(body.getGraph()));
 
       return signature.verify(Base64.getDecoder().decode(body.getSignature()));
     } catch (Exception e) {
