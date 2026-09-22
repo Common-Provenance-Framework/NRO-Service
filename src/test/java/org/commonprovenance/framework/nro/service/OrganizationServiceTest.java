@@ -3,13 +3,16 @@ package org.commonprovenance.framework.nro.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.commonprovenance.framework.nro.api.Organization.StoreCertOrganizationDTO;
@@ -17,8 +20,10 @@ import org.commonprovenance.framework.nro.config.AppProperties;
 import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Organization;
+import org.commonprovenance.framework.nro.data.model.OrganizationCertificate;
 import org.commonprovenance.framework.nro.data.records.OrganizationAndCertificates;
 import org.commonprovenance.framework.nro.data.repository.CertificateRepository;
+import org.commonprovenance.framework.nro.data.repository.OrganizationCertificateRepository;
 import org.commonprovenance.framework.nro.data.repository.OrganizationRepository;
 import org.commonprovenance.framework.nro.exceptions.CertificateVerificationException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationAlreadyExistsException;
@@ -44,37 +49,49 @@ class OrganizationServiceTest {
   private CertificateRepository certificateRepository;
 
   @Mock
+  private OrganizationCertificateRepository organizationCertificateRepository;
+
+  @Mock
   private AppProperties appProperties;
 
   private OrganizationService organizationService;
 
   @BeforeEach
   void setUp() {
-    organizationService = new OrganizationService(organizationRepository, certificateRepository, appProperties);
+    organizationService = new OrganizationService(
+        organizationRepository,
+        certificateRepository,
+        organizationCertificateRepository,
+        appProperties);
   }
 
   @Test
-  void getAllOrganizations_existingOrganizations_returnsActiveCertificates() {
+  void getAllOrganizations_existingOrganizations_returnOnlyActiveCertificates() {
     Organization organization = new Organization();
     organization.setId("org-1");
-    Certificate activeCert = new Certificate();
-    activeCert.setCertDigest("digest-1");
+    Certificate certificate_1 = new Certificate();
+    certificate_1.setCertDigest("shared-1");
+    Certificate certificate_2 = new Certificate();
+    certificate_2.setCertDigest("shared-2");
 
-    when(organizationRepository.findAll()).thenReturn(List.of(organization));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+    OrganizationCertificate active = association(organization, certificate_1, false);
+    OrganizationCertificate revoked = association(organization, certificate_2, true);
+
+    when(organizationRepository.findAll()).thenReturn(List.of(active.getOrganization()));
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
-        true)).thenReturn(List.of());
-    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+        true)).thenReturn(List.of(revoked));
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
-        false)).thenReturn(activeCert);
+        false)).thenReturn(Optional.of(active));
 
     List<OrganizationAndCertificates> result = organizationService.getAllOrganizations();
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).organization()).isSameAs(organization);
-    assertThat(result.get(0).activeCertificate()).isSameAs(activeCert);
+    assertThat(result.get(0).activeCertificate().getCertificate()).isSameAs(active.getCertificate());
     assertThat(result.get(0).revokedCertificates()).isNull();
   }
 
@@ -82,26 +99,29 @@ class OrganizationServiceTest {
   void getOrganization_existingOrganization_returnsCertificates() {
     Organization organization = new Organization();
     organization.setId("org-1");
-    Certificate activeCert = new Certificate();
-    activeCert.setCertDigest("digest-1");
-    Certificate revokedCert = new Certificate();
-    revokedCert.setCertDigest("digest-2");
+    Certificate certificate_1 = new Certificate();
+    certificate_1.setCertDigest("shared-1");
+    Certificate certificate_2 = new Certificate();
+    certificate_2.setCertDigest("shared-2");
+
+    OrganizationCertificate active = association(organization, certificate_1, false);
+    OrganizationCertificate revoked = association(organization, certificate_2, true);
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
-        true)).thenReturn(List.of(revokedCert));
-    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+        true)).thenReturn(List.of(revoked));
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         CertificateType.CLIENT,
-        false)).thenReturn(activeCert);
+        false)).thenReturn(Optional.of(active));
 
     OrganizationAndCertificates result = organizationService.getOrganization("org-1");
 
     assertThat(result.organization()).isSameAs(organization);
-    assertThat(result.activeCertificate()).isSameAs(activeCert);
-    assertThat(result.revokedCertificates()).containsExactly(revokedCert);
+    assertThat(result.activeCertificate()).isSameAs(active);
+    assertThat(result.revokedCertificates()).singleElement().isSameAs(revoked);
   }
 
   @Test
@@ -115,11 +135,11 @@ class OrganizationServiceTest {
 
   @Test
   void storeCertToOrganization_idMismatch_throwsOrganizationIdMismatchException() {
-    StoreCertOrganizationDTO body = buildStoreDto("org-body");
+    StoreCertOrganizationDTO body = buildStoreDto("org-1");
 
-    assertThatThrownBy(() -> organizationService.storeCertToOrganization("org-uri", body))
+    assertThatThrownBy(() -> organizationService.storeCertToOrganization("org-2", body))
         .isInstanceOf(OrganizationIdMismatchException.class)
-        .hasMessageContaining("org-uri");
+        .hasMessageContaining("org-2");
   }
 
   @Test
@@ -180,8 +200,8 @@ class OrganizationServiceTest {
 
     List<Certificate> saved = certCaptor.getAllValues();
     assertThat(saved)
-        .extracting(Certificate::getCertificateType)
-        .contains(CertificateType.CLIENT, CertificateType.INTERMEDIATE);
+        .extracting(Certificate::getCertDigest)
+        .contains("digest-client", "digest-int-1");
   }
 
   @Test
@@ -230,22 +250,53 @@ class OrganizationServiceTest {
     organization.setId("org-1");
 
     Certificate existingClient = new Certificate();
-    existingClient.setCertificateType(CertificateType.CLIENT);
-    existingClient.setIsRevoked(false);
-    existingClient.setReceived_on(LocalDateTime.now());
+    existingClient.setCertDigest("digest-client-ex");
+    OrganizationCertificate existingClientAssociation = association(organization, existingClient, false);
+    existingClientAssociation.setReceivedOn(LocalDateTime.now());
 
     Certificate existingIntermediate = new Certificate();
-    existingIntermediate.setCertificateType(CertificateType.INTERMEDIATE);
-    existingIntermediate.setIsRevoked(false);
-    existingIntermediate.setReceived_on(LocalDateTime.now());
+    existingIntermediate.setCertDigest("digest-int-ex");
+
+    OrganizationCertificate existingInterAssociation = association(organization, existingIntermediate, true);
+    existingInterAssociation.setCertificateType(CertificateType.INTERMEDIATE);
+    existingInterAssociation.setReceivedOn(LocalDateTime.now());
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
-        "org-1", CertificateType.CLIENT, false)).thenReturn(List.of(existingClient));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
-        "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of(existingIntermediate));
-    when(certificateRepository.findByCertDigest("digest-int-1")).thenReturn(Optional.empty());
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+        "org-1", CertificateType.CLIENT, false)).thenReturn(List.of(existingClientAssociation));
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+        "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of(existingInterAssociation));
+    when(organizationCertificateRepository.save(any(OrganizationCertificate.class)))
+        .thenAnswer(invocation -> ((OrganizationCertificate) invocation.getArgument(0)));
+    when(certificateRepository.save(any(Certificate.class)))
+        .thenAnswer(invocation -> ((Certificate) invocation.getArgument(0)));
+
+    when(certificateRepository.findByCertDigest(anyString()))
+        .then(invocation -> {
+          switch (invocation.getArgument(0).toString()) {
+            case "digest-client-ex":
+              return Optional.of(existingClient);
+            case "digest-int-ex":
+              return Optional.of(existingIntermediate);
+            default:
+              return Optional.empty();
+          }
+        });
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificate_CertDigest(anyString(), anyString()))
+        .then(invocation -> {
+          if (!invocation.getArgument(0).toString().equals("org-1"))
+            return Optional.empty();
+
+          switch (invocation.getArgument(1).toString()) {
+            case "digest-client-ex":
+              return Optional.of(existingClientAssociation);
+            case "digest-int-ex":
+              return Optional.of(existingInterAssociation);
+            default:
+              return Optional.empty();
+          }
+        });
 
     try (MockedStatic<TrustedPartyUtils> utils = mockStatic(TrustedPartyUtils.class)) {
       utils.when(() -> TrustedPartyUtils.verifyChainOfTrust(
@@ -255,18 +306,28 @@ class OrganizationServiceTest {
       utils.when(() -> TrustedPartyUtils.computeCertificateDigest("client-cert"))
           .thenReturn("digest-client");
       utils.when(() -> TrustedPartyUtils.computeCertificateDigest("intermediate-1"))
-          .thenReturn("digest-int-1");
+          .thenReturn("intermediate-1");
 
       organizationService.updateCertificates("org-1", body);
     }
 
-    ArgumentCaptor<Certificate> certCaptor = ArgumentCaptor.forClass(Certificate.class);
-    verify(certificateRepository, atLeast(3)).save(certCaptor.capture());
+    ArgumentCaptor<OrganizationCertificate> orgCertCaptor = ArgumentCaptor.forClass(OrganizationCertificate.class);
+    // twice when revoke two existing associations
+    // twice when create two new associations
+    verify(organizationCertificateRepository, atLeast(4)).save(orgCertCaptor.capture());
+    List<OrganizationCertificate> savedAssociations = orgCertCaptor.getAllValues();
+    assertThat(savedAssociations)
+        .extracting(OrganizationCertificate::getCertificate)
+        .extracting(Certificate::getCertDigest)
+        .contains("digest-client-ex", "digest-int-ex", "digest-client", "intermediate-1");
 
+    ArgumentCaptor<Certificate> certCaptor = ArgumentCaptor.forClass(Certificate.class);
+    // twice when create two new certificates
+    verify(certificateRepository, atLeast(2)).save(certCaptor.capture());
     List<Certificate> saved = certCaptor.getAllValues();
     assertThat(saved)
-        .extracting(Certificate::getIsRevoked)
-        .contains(true, false);
+        .extracting(Certificate::getCertDigest)
+        .contains("digest-client", "intermediate-1");
   }
 
   @Test
@@ -276,24 +337,55 @@ class OrganizationServiceTest {
     organization.setId("org-1");
 
     Certificate existingClient = new Certificate();
-    existingClient.setCertificateType(CertificateType.CLIENT);
-    existingClient.setIsRevoked(false);
-    existingClient.setReceived_on(LocalDateTime.now());
+    existingClient.setCertDigest("digest-client-ex");
+    OrganizationCertificate existingClientAssociation = association(organization, existingClient, false);
+    existingClientAssociation.setReceivedOn(LocalDateTime.now());
 
     Certificate existingIntermediate = new Certificate();
-    existingIntermediate.setCertDigest("digest-int-1");
-    existingIntermediate.setCertificateType(CertificateType.INTERMEDIATE);
-    existingIntermediate.setIsRevoked(true);
-    existingIntermediate.setReceived_on(LocalDateTime.now());
+    existingIntermediate.setCertDigest("digest-int-ex");
+
+    OrganizationCertificate existingInterAssociation = association(organization, existingIntermediate, true);
+    existingInterAssociation.setCertificateType(CertificateType.INTERMEDIATE);
+    existingInterAssociation.setIsRevoked(true);
+    existingInterAssociation.setReceivedOn(LocalDateTime.now());
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
-        "org-1", CertificateType.CLIENT, false)).thenReturn(List.of(existingClient));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+        "org-1", CertificateType.CLIENT, false)).thenReturn(List.of(existingClientAssociation));
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of());
-    when(certificateRepository.findByCertDigest("digest-int-1"))
-        .thenReturn(Optional.of(existingIntermediate));
+    when(certificateRepository.findByCertDigest(anyString()))
+        .then(invocation -> {
+          switch (invocation.getArgument(0).toString()) {
+            case "digest-client-ex":
+              return Optional.of(existingClient);
+            case "digest-int-ex":
+              return Optional.of(existingIntermediate);
+            default:
+              return Optional.empty();
+          }
+        });
+
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificate_CertDigest(anyString(), anyString()))
+        .then(invocation -> {
+          if (!invocation.getArgument(0).toString().equals("org-1"))
+            return Optional.empty();
+
+          switch (invocation.getArgument(1).toString()) {
+            case "digest-client-ex":
+              return Optional.of(existingClientAssociation);
+            case "digest-int-ex":
+              return Optional.of(existingInterAssociation);
+            default:
+              return Optional.empty();
+          }
+        });
+
+    when(organizationCertificateRepository.save(any(OrganizationCertificate.class)))
+        .thenAnswer(invocation -> ((OrganizationCertificate) invocation.getArgument(0)));
+    when(certificateRepository.save(any(Certificate.class)))
+        .thenAnswer(invocation -> ((Certificate) invocation.getArgument(0)));
 
     try (MockedStatic<TrustedPartyUtils> utils = mockStatic(TrustedPartyUtils.class)) {
       utils.when(() -> TrustedPartyUtils.verifyChainOfTrust(
@@ -303,12 +395,11 @@ class OrganizationServiceTest {
       utils.when(() -> TrustedPartyUtils.computeCertificateDigest("client-cert"))
           .thenReturn("digest-client");
       utils.when(() -> TrustedPartyUtils.computeCertificateDigest("intermediate-1"))
-          .thenReturn("digest-int-1");
+          .thenReturn("digest-int-ex");
 
       organizationService.updateCertificates("org-1", body);
     }
-
-    assertThat(existingIntermediate.getIsRevoked()).isFalse();
+    assertThat(existingInterAssociation.getIsRevoked()).isFalse();
   }
 
   @Test
@@ -317,21 +408,29 @@ class OrganizationServiceTest {
     Organization organization = new Organization();
     organization.setId("org-1");
 
-    Certificate revokedClient = new Certificate();
-    revokedClient.setCertificateType(CertificateType.CLIENT);
-    revokedClient.setIsRevoked(true);
+    Certificate existingClient = new Certificate();
+    existingClient.setCertDigest("digest-client-ex");
+    OrganizationCertificate existingClientAssociation = association(organization, existingClient, false);
+    existingClientAssociation.setIsRevoked(true);
+    existingClientAssociation.setReceivedOn(LocalDateTime.now());
 
-    Certificate revokedIntermediate = new Certificate();
-    revokedIntermediate.setCertificateType(CertificateType.INTERMEDIATE);
-    revokedIntermediate.setIsRevoked(true);
+    Certificate existingIntermediate = new Certificate();
+    existingIntermediate.setCertDigest("digest-int-ex");
+
+    OrganizationCertificate existingInterAssociation = association(organization, existingIntermediate, true);
+    existingInterAssociation.setCertificateType(CertificateType.INTERMEDIATE);
+    existingInterAssociation.setIsRevoked(true);
+    existingInterAssociation.setReceivedOn(LocalDateTime.now());
 
     when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
     when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.CLIENT, false)).thenReturn(List.of());
-    when(certificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
+    when(organizationCertificateRepository.findByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1", CertificateType.INTERMEDIATE, false)).thenReturn(List.of());
     when(certificateRepository.findByCertDigest("digest-int-1")).thenReturn(Optional.empty());
+    when(certificateRepository.findByCertDigest("digest-client")).thenReturn(Optional.empty());
 
     try (MockedStatic<TrustedPartyUtils> utils = mockStatic(TrustedPartyUtils.class)) {
       utils.when(() -> TrustedPartyUtils.verifyChainOfTrust(
@@ -346,8 +445,121 @@ class OrganizationServiceTest {
       organizationService.updateCertificates("org-1", body);
     }
 
-    assertThat(revokedClient.getIsRevoked()).isTrue();
-    assertThat(revokedIntermediate.getIsRevoked()).isTrue();
+    assertThat(existingClientAssociation.getIsRevoked()).isTrue();
+    assertThat(existingInterAssociation.getIsRevoked()).isTrue();
+  }
+
+  @Test
+  void storeCertToOrganization_sameIntermediateForTwoOrganizations_reusesCertificate() {
+    StoreCertOrganizationDTO body = TestDataFactory.storeCertRequest();
+    when(organizationRepository.findById("org-1")).thenReturn(Optional.empty());
+    when(organizationRepository.findById("org-2")).thenReturn(Optional.empty());
+    when(appProperties.loadTrustedCertificates()).thenReturn(List.of("trusted"));
+    Map<String, Certificate> certificates = new HashMap<>();
+    when(certificateRepository.findByCertDigest(any(String.class)))
+        .thenAnswer(invocation -> Optional.ofNullable(certificates.get(invocation.getArgument(0))));
+    when(certificateRepository.save(any(Certificate.class))).thenAnswer(invocation -> {
+      Certificate certificate = invocation.getArgument(0);
+      certificates.put(certificate.getCertDigest(), certificate);
+      return certificate;
+    });
+    when(organizationCertificateRepository.save(any(OrganizationCertificate.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    try (MockedStatic<TrustedPartyUtils> utils = mockStatic(TrustedPartyUtils.class)) {
+      utils.when(() -> TrustedPartyUtils.verifyChainOfTrust(
+          body.getClientCertificate(), body.getIntermediateCertificates(), List.of("trusted")))
+          .thenReturn(true);
+      utils.when(() -> TrustedPartyUtils.computeCertificateDigest("client-cert"))
+          .thenReturn("client-digest");
+      utils.when(() -> TrustedPartyUtils.computeCertificateDigest("intermediate-1"))
+          .thenReturn("shared-digest");
+
+      organizationService.storeCertToOrganization("org-1", body);
+
+      body.setId("org-2");
+      organizationService.storeCertToOrganization("org-2", body);
+    }
+
+    ArgumentCaptor<OrganizationCertificate> associationCaptor = ArgumentCaptor.forClass(OrganizationCertificate.class);
+    verify(organizationCertificateRepository, atLeast(4)).save(associationCaptor.capture());
+    assertThat(associationCaptor.getAllValues()).hasSize(4);
+
+    assertThat(
+        associationCaptor.getAllValues().stream()
+            .map(OrganizationCertificate::getCertificate)
+            .map(Certificate::getCertDigest)
+            .distinct())
+        .hasSize(2);
+
+    ArgumentCaptor<Certificate> certificateCaptor = ArgumentCaptor.forClass(Certificate.class);
+    verify(certificateRepository, atLeast(2)).save(certificateCaptor.capture());
+    assertThat(certificateCaptor.getAllValues()).extracting(Certificate::getCertDigest)
+        .containsExactly("client-digest", "shared-digest");
+  }
+
+  @Test
+  void revokeAllStoredCertificates_onlyChangesSelectedOrganization() {
+    OrganizationCertificate first = association("org-a", "shared", false);
+    OrganizationCertificate second = association("org-b", "shared", false);
+    when(organizationCertificateRepository
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked("org-a", CertificateType.CLIENT, false))
+        .thenReturn(List.of(first));
+    when(organizationCertificateRepository
+        .findByOrganizationIdAndCertificateTypeAndIsRevoked("org-a", CertificateType.INTERMEDIATE, false))
+        .thenReturn(List.of());
+
+    organizationService.revokeAllStoredCertificates("org-a");
+
+    assertThat(first.getIsRevoked()).isTrue();
+    assertThat(second.getIsRevoked()).isFalse();
+  }
+
+  @Test
+  void storeCertToOrganization_existingOrganization_rejectsRequest() {
+    StoreCertOrganizationDTO body = TestDataFactory.storeCertRequest();
+    Organization organization = new Organization();
+    organization.setId("org-1");
+    when(organizationRepository.findById("org-1")).thenReturn(Optional.of(organization));
+
+    assertThatThrownBy(() -> organizationService.storeCertToOrganization("org-1", body))
+        .isInstanceOf(OrganizationAlreadyExistsException.class);
+  }
+
+  @Test
+  void storeCertToOrganization_idMismatch_rejectsRequest() {
+    StoreCertOrganizationDTO body = TestDataFactory.storeCertRequest();
+
+    assertThatThrownBy(() -> organizationService.storeCertToOrganization("other-org", body))
+        .isInstanceOf(OrganizationIdMismatchException.class);
+  }
+
+  private Certificate existingCertificate(String digest) {
+    Certificate certificate = new Certificate();
+    certificate.setCertDigest(digest);
+    certificate.setCert("cert-body");
+    return certificate;
+  }
+
+  private OrganizationCertificate association(String organizationId, String digest, boolean revoked) {
+    Organization organization = new Organization();
+    organization.setId(organizationId);
+    OrganizationCertificate association = new OrganizationCertificate();
+    association.setOrganization(organization);
+    association.setCertificate(existingCertificate(digest));
+    association.setCertificateType(CertificateType.CLIENT);
+    association.setIsRevoked(revoked);
+    return association;
+  }
+
+  private OrganizationCertificate association(Organization organization, Certificate cert, boolean revoked) {
+
+    OrganizationCertificate association = new OrganizationCertificate();
+    association.setOrganization(organization);
+    association.setCertificate(cert);
+    association.setCertificateType(CertificateType.CLIENT);
+    association.setIsRevoked(revoked);
+    return association;
   }
 
   private StoreCertOrganizationDTO buildStoreDto(String orgId) {
