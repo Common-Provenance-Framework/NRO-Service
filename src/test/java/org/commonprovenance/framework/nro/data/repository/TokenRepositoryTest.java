@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
@@ -92,10 +91,6 @@ class TokenRepositoryTest {
     Certificate certificate = new Certificate();
     certificate.setCertDigest("cert-" + id);
     certificate.setCert("cert-body");
-    certificate.setCertificateType(CertificateType.CLIENT);
-    certificate.setIsRevoked(false);
-    certificate.setReceived_on(LocalDateTime.now().minusDays(1));
-    certificate.setOrganization(organization);
     entityManager.persist(certificate);
 
     Document document = new Document();
