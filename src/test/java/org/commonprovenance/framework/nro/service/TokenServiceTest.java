@@ -43,10 +43,11 @@ import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Document;
 import org.commonprovenance.framework.nro.data.model.Organization;
+import org.commonprovenance.framework.nro.data.model.OrganizationCertificate;
 import org.commonprovenance.framework.nro.data.model.Token;
-import org.commonprovenance.framework.nro.data.repository.CertificateRepository;
 import org.commonprovenance.framework.nro.data.repository.DocumentRepository;
 import org.commonprovenance.framework.nro.data.repository.OrganizationRepository;
+import org.commonprovenance.framework.nro.data.repository.OrganizationCertificateRepository;
 import org.commonprovenance.framework.nro.data.repository.TokenRepository;
 import org.commonprovenance.framework.nro.exceptions.CertificateNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.DocumentNotFoundException;
@@ -81,7 +82,7 @@ class TokenServiceTest {
   private DocumentRepository documentRepository;
 
   @Mock
-  private CertificateRepository certificateRepository;
+  private OrganizationCertificateRepository organizationCertificateRepository;
 
   @Mock
   private AppProperties appProperties;
@@ -94,7 +95,7 @@ class TokenServiceTest {
         tokenRepository,
         organizationRepository,
         documentRepository,
-        certificateRepository,
+        organizationCertificateRepository,
         appProperties);
   }
 
@@ -299,8 +300,8 @@ class TokenServiceTest {
         anyString(),
         eq("provn"),
         eq(organization))).thenReturn(Optional.empty());
-    when(certificateRepository.findFirstByOrganizationIdAndIsRevoked("org-1", false))
-        .thenReturn(null);
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndIsRevoked("org-1", false))
+        .thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> tokenService.issueTokenAndStoreDoc(body))
         .isInstanceOf(CertificateNotFoundException.class)
@@ -311,10 +312,10 @@ class TokenServiceTest {
   void verifySignature_missingCertificate_throwsCertificateNotFoundException() {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
 
-    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
-        false)).thenReturn(null);
+        false)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> tokenService.verifySignature(body))
         .isInstanceOf(CertificateNotFoundException.class)
@@ -327,10 +328,10 @@ class TokenServiceTest {
     org.commonprovenance.framework.nro.data.model.Certificate certificate = new org.commonprovenance.framework.nro.data.model.Certificate();
     certificate.setCert("not-a-certificate");
 
-    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
-        false)).thenReturn(certificate);
+        false)).thenReturn(Optional.of(association(certificate)));
 
     assertThatThrownBy(() -> tokenService.verifySignature(body))
         .isInstanceOf(SignatureVerificationException.class)
@@ -358,14 +359,26 @@ class TokenServiceTest {
     body.setGraph(Base64.getEncoder().encodeToString(graphBytes));
     body.setSignature(signatureB64);
 
-    when(certificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
         org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
-        false)).thenReturn(certificate);
+        false)).thenReturn(Optional.of(association(certificate)));
 
     boolean verified = tokenService.verifySignature(body);
 
     assertThat(verified).isTrue();
+  }
+
+  private OrganizationCertificate association(
+      org.commonprovenance.framework.nro.data.model.Certificate certificate) {
+    Organization organization = new Organization();
+    organization.setId("org-1");
+    OrganizationCertificate association = new OrganizationCertificate();
+    association.setOrganization(organization);
+    association.setCertificate(certificate);
+    association.setCertificateType(org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT);
+    association.setIsRevoked(false);
+    return association;
   }
 
   @Test

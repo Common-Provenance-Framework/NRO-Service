@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.model.Certificate;
 import org.commonprovenance.framework.nro.data.model.Document;
@@ -197,10 +196,6 @@ class DocumentRepositoryTest {
     Certificate certificate = new Certificate();
     certificate.setCertDigest(digest);
     certificate.setCert("cert-body");
-    certificate.setCertificateType(CertificateType.CLIENT);
-    certificate.setIsRevoked(false);
-    certificate.setReceived_on(LocalDateTime.now().minusDays(1));
-    certificate.setOrganization(organization);
     entityManager.persist(certificate);
     return certificate;
   }
