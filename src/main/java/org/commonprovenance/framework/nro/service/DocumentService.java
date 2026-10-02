@@ -8,6 +8,7 @@ import org.commonprovenance.framework.nro.exceptions.DocumentNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DocumentService {
@@ -20,6 +21,7 @@ public class DocumentService {
     this.organizationRepository = organizationRepository;
   }
 
+  @Transactional(readOnly = true)
   public Document getDocument(
       @NonNull String organizationId,
       String documentId,
