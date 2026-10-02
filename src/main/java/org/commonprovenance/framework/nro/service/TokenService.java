@@ -95,6 +95,7 @@ public class TokenService {
     this.appProperties = appProperties;
   }
 
+  @Transactional(readOnly = true)
   public List<Token> getToken(
       @NonNull String organizationId,
       String documentId,
