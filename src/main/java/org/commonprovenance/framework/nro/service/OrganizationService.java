@@ -123,7 +123,6 @@ public class OrganizationService {
     storeOrganizationAndCerts(id, body.getClientCertificate(), body.getIntermediateCertificates());
   }
 
-  @Transactional
   protected void storeOrganizationAndCerts(String id, String clientCertificate, List<String> intermediateCertificates) {
     Organization org = new Organization();
     org.setId(id);
@@ -150,7 +149,6 @@ public class OrganizationService {
     }
   }
 
-  @Transactional
   protected void revokeAndUpdateCertifacates(
       @NonNull String id,
       String clientCertificate,
@@ -190,7 +188,6 @@ public class OrganizationService {
     }
   }
 
-  @Transactional
   protected void revokeAllStoredCertificates(String id) {
     List<Certificate> clientCertificates = certificateRepository
         .findByOrganizationIdAndCertificateTypeAndIsRevoked(id, CertificateType.CLIENT, false);
@@ -209,7 +206,6 @@ public class OrganizationService {
     }
   }
 
-  @Transactional(readOnly = true)
   private SortedCertificates getSortedCertificates(String id) {
     List<Certificate> revokedCerts = certificateRepository
         .findByOrganizationIdAndCertificateTypeAndIsRevoked(
