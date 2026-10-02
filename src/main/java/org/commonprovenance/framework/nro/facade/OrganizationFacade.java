@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.commonprovenance.framework.nro.api.Organization.OrganizationDTO;
 import org.commonprovenance.framework.nro.api.Organization.StoreCertOrganizationDTO;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 
 public interface OrganizationFacade {
   List<OrganizationDTO> getAllOrganizations();

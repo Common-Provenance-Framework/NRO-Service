@@ -6,7 +6,7 @@ import org.commonprovenance.framework.nro.api.Organization.OrganizationDTO;
 import org.commonprovenance.framework.nro.api.Organization.StoreCertOrganizationDTO;
 import org.commonprovenance.framework.nro.mappers.OrganizationMapper;
 import org.commonprovenance.framework.nro.service.OrganizationService;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
