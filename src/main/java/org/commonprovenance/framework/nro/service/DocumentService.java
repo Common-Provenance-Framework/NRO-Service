@@ -6,7 +6,7 @@ import org.commonprovenance.framework.nro.data.repository.DocumentRepository;
 import org.commonprovenance.framework.nro.data.repository.OrganizationRepository;
 import org.commonprovenance.framework.nro.exceptions.DocumentNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service

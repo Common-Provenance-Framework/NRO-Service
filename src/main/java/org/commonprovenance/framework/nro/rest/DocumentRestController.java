@@ -3,7 +3,7 @@ package org.commonprovenance.framework.nro.rest;
 import org.commonprovenance.framework.nro.api.Document.DocumentDTO;
 import org.commonprovenance.framework.nro.facade.DocumentFacade;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

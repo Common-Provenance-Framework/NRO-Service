@@ -20,7 +20,7 @@ import org.commonprovenance.framework.nro.exceptions.OrganizationAlreadyExistsEx
 import org.commonprovenance.framework.nro.exceptions.OrganizationIdMismatchException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.utils.TrustedPartyUtils;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -60,9 +60,9 @@ import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundExcepti
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
 import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
 import org.commonprovenance.framework.nro.utils.prov.ProvToolboxUtils;
+import org.jspecify.annotations.NonNull;
 import org.openprovenance.prov.model.Bundle;
 import org.openprovenance.prov.model.StatementOrBundle;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
