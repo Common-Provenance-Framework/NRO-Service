@@ -191,8 +191,9 @@ public class TokenService {
     }
 
     Certificate certificate = organizationCertificateRepository
-        .findFirstByOrganizationIdAndIsRevoked(
+        .findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
             body.getOrganizationId(),
+            CertificateType.CLIENT,
             false)
         .map(OrganizationCertificate::getCertificate)
         .orElseThrow(() -> new CertificateNotFoundException(body.getOrganizationId()));
