@@ -11,6 +11,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
@@ -417,6 +418,15 @@ public class TokenService {
     try (ByteArrayInputStream in = new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII))) {
       return (X509Certificate) cf.generateCertificate(in);
     }
+  }
+
+  private String toPem(X509Certificate certificate) throws CertificateEncodingException {
+    String base64 = Base64.getMimeEncoder(64, new byte[] { '\n' })
+        .encodeToString(certificate.getEncoded());
+
+    return "-----BEGIN CERTIFICATE-----\n"
+        + base64
+        + "\n-----END CERTIFICATE-----\n";
   }
 
   private PrivateKey loadPrivateKey() throws Exception {
