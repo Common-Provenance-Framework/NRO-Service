@@ -39,6 +39,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
 import org.commonprovenance.framework.nro.config.AppProperties;
+import org.commonprovenance.framework.nro.data.enums.CertificateType;
 import org.commonprovenance.framework.nro.data.enums.GraphType;
 import org.commonprovenance.framework.nro.data.enums.HashFunction;
 import org.commonprovenance.framework.nro.data.model.Document;
@@ -300,8 +301,10 @@ class TokenServiceTest {
         anyString(),
         eq("provn"),
         eq(organization))).thenReturn(Optional.empty());
-    when(organizationCertificateRepository.findFirstByOrganizationIdAndIsRevoked("org-1", false))
-        .thenReturn(Optional.empty());
+    when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
+        "org-1",
+        CertificateType.CLIENT,
+        false)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> tokenService.issueTokenAndStoreDoc(body))
         .isInstanceOf(CertificateNotFoundException.class)
@@ -314,7 +317,7 @@ class TokenServiceTest {
 
     when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
-        org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
+        CertificateType.CLIENT,
         false)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> tokenService.verifySignature(body))
@@ -330,7 +333,7 @@ class TokenServiceTest {
 
     when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
-        org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
+        CertificateType.CLIENT,
         false)).thenReturn(Optional.of(association(certificate)));
 
     assertThatThrownBy(() -> tokenService.verifySignature(body))
@@ -361,7 +364,7 @@ class TokenServiceTest {
 
     when(organizationCertificateRepository.findFirstByOrganizationIdAndCertificateTypeAndIsRevoked(
         "org-1",
-        org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT,
+        CertificateType.CLIENT,
         false)).thenReturn(Optional.of(association(certificate)));
 
     boolean verified = tokenService.verifySignature(body);
@@ -376,7 +379,7 @@ class TokenServiceTest {
     OrganizationCertificate association = new OrganizationCertificate();
     association.setOrganization(organization);
     association.setCertificate(certificate);
-    association.setCertificateType(org.commonprovenance.framework.nro.data.enums.CertificateType.CLIENT);
+    association.setCertificateType(CertificateType.CLIENT);
     association.setIsRevoked(false);
     return association;
   }
