@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.commonprovenance.framework.nro.api.TokenResponseDTO;
 import org.commonprovenance.framework.nro.api.Token.TokenRequestDTO;
+import org.commonprovenance.framework.nro.exceptions.InvalidSignatureException;
 import org.commonprovenance.framework.nro.facade.TokenFacade;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,6 +54,6 @@ public class TokenRestController {
     if (tokenFacade.verifySignature(body)) {
       return ResponseEntity.ok().build();
     }
-    return ResponseEntity.badRequest().build();
+    throw new InvalidSignatureException("Invalid signature");
   }
 }

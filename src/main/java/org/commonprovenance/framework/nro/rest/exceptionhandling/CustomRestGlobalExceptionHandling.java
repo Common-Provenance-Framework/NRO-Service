@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import org.commonprovenance.framework.nro.exceptions.CertificateNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.CertificateVerificationException;
 import org.commonprovenance.framework.nro.exceptions.DocumentNotFoundException;
+import org.commonprovenance.framework.nro.exceptions.InvalidSignatureException;
 import org.commonprovenance.framework.nro.exceptions.InvalidTimestampException;
 import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationAlreadyExistsException;
@@ -49,6 +50,7 @@ public class CustomRestGlobalExceptionHandling {
       InvalidTimestampException.class,
       MissingSignatureException.class,
       OrganizationIdMismatchException.class,
+      SignatureVerificationException.class,
       IllegalArgumentException.class
   })
   public ResponseEntity<ApiError> handleBadRequest(
@@ -81,7 +83,7 @@ public class CustomRestGlobalExceptionHandling {
 
   @ExceptionHandler({
       CertificateVerificationException.class,
-      SignatureVerificationException.class
+      InvalidSignatureException.class
   })
   public ResponseEntity<ApiError> handleUnauthorized(
       final Exception ex,
