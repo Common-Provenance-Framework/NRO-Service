@@ -101,14 +101,14 @@ class TokenRestControllerTest {
   }
 
   @Test
-  void verifySignature_invalid_returnsBadRequest() throws Exception {
+  void verifySignature_invalid_returnsUnauthorized() throws Exception {
     TokenRequestDTO body = TestDataFactory.tokenRequest();
     when(tokenFacade.verifySignature(any(TokenRequestDTO.class))).thenReturn(false);
 
     mockMvc.perform(post("/api/v1/verifySignature")
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(body)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isUnauthorized());
   }
 
 }
