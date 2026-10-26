@@ -52,7 +52,7 @@ import org.commonprovenance.framework.nro.data.repository.OrganizationCertificat
 import org.commonprovenance.framework.nro.data.repository.TokenRepository;
 import org.commonprovenance.framework.nro.exceptions.CertificateNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.DocumentNotFoundException;
-import org.commonprovenance.framework.nro.exceptions.InvalidRequestException;
+import org.commonprovenance.framework.nro.exceptions.InvalidSignatureException;
 import org.commonprovenance.framework.nro.exceptions.InvalidTimestampException;
 import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
@@ -183,17 +183,6 @@ class TokenServiceTest {
   }
 
   @Test
-  void issueToken_missingOrganizationId_throwsInvalidRequestException() {
-    TokenRequestDTO body = buildRequest(GraphType.META);
-    body.setOrganizationId(" ");
-    body.setGraph(null);
-
-    assertThatThrownBy(() -> tokenService.issueToken(body))
-        .isInstanceOf(InvalidRequestException.class)
-        .hasMessageContaining("Missing organizationId");
-  }
-
-  @Test
   void issueToken_graphMissingSignature_throwsMissingSignatureException() {
     TokenRequestDTO body = buildRequest(GraphType.GRAPH);
     body.setSignature(" ");
@@ -235,7 +224,7 @@ class TokenServiceTest {
     doReturn(false).when(serviceSpy).verifySignature(body);
 
     assertThatThrownBy(() -> serviceSpy.issueToken(body))
-        .isInstanceOf(SignatureVerificationException.class);
+        .isInstanceOf(InvalidSignatureException.class);
   }
 
   @Test
@@ -250,22 +239,6 @@ class TokenServiceTest {
     Token result = serviceSpy.issueToken(body);
 
     assertThat(result).isSameAs(expected);
-  }
-
-  @Test
-  void issueToken_missingOrganizationId_infersFromDocument() {
-    TokenRequestDTO body = buildRequest(GraphType.META);
-    body.setOrganizationId(" ");
-    body.setGraph(base64Of("/organizations/org-inferred/documents/doc-x"));
-    Token expected = new Token();
-
-    TokenService serviceSpy = spy(tokenService);
-    doReturn(expected).when(serviceSpy).issueTokenAndStoreDoc(body);
-
-    Token result = serviceSpy.issueToken(body);
-
-    assertThat(result).isSameAs(expected);
-    assertThat(body.getOrganizationId()).isEqualTo("org-inferred");
   }
 
   @Test

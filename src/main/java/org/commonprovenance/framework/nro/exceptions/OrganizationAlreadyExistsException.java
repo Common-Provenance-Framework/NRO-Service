@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class OrganizationAlreadyExistsException extends RuntimeException {
+public class OrganizationAlreadyExistsException extends ApplicationException {
 
   public OrganizationAlreadyExistsException() {
   }

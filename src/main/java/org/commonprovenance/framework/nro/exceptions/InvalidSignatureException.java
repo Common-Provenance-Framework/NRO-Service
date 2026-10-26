@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class InvalidSignatureException extends RuntimeException {
+public class InvalidSignatureException extends ApplicationException {
 
   public InvalidSignatureException() {
   }

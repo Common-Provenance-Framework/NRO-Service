@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class SignatureVerificationException extends RuntimeException {
+public class SignatureVerificationException extends ApplicationException {
 
   public SignatureVerificationException() {
   }
