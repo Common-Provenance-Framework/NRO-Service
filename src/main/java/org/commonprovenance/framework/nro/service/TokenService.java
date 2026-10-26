@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -55,7 +53,7 @@ import org.commonprovenance.framework.nro.data.repository.OrganizationRepository
 import org.commonprovenance.framework.nro.data.repository.TokenRepository;
 import org.commonprovenance.framework.nro.exceptions.CertificateNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.DocumentNotFoundException;
-import org.commonprovenance.framework.nro.exceptions.InvalidRequestException;
+import org.commonprovenance.framework.nro.exceptions.InvalidSignatureException;
 import org.commonprovenance.framework.nro.exceptions.InvalidTimestampException;
 import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
@@ -134,18 +132,10 @@ public class TokenService {
 
   @Transactional
   public Token issueToken(@NonNull TokenRequestDTO body) {
-    if (body.getOrganizationId() == null || body.getOrganizationId().isBlank()) {
-      String inferred = inferOrganizationId(body);
-      if (inferred != null && !inferred.isBlank()) {
-        body.setOrganizationId(inferred);
-      } else {
-        throw new InvalidRequestException("Missing organizationId");
-      }
-    }
 
     if (body.getGraphType() == GraphType.GRAPH) {
       if (!verifySignature(body))
-        throw new SignatureVerificationException("Invalid signature to the graph!");
+        throw new InvalidSignatureException("Invalid signature to the graph!");
     }
 
     LocalDateTime createdOn = parseLocalDateTime(body.getCreatedOn());
@@ -295,26 +285,6 @@ public class TokenService {
     } catch (Exception ignored) {
       return LocalDateTime.ofInstant(Instant.parse(text), ZoneOffset.UTC);
     }
-  }
-
-  private String inferOrganizationId(TokenRequestDTO body) {
-    String document = body.getGraph();
-    if (document == null || document.isBlank()) {
-      return null;
-    }
-    try {
-      byte[] decoded = Base64.getDecoder().decode(document);
-      String content = new String(decoded, StandardCharsets.UTF_8);
-      Matcher matcher = Pattern
-          .compile("/organizations/([^/]+)/documents/")
-          .matcher(content);
-      if (matcher.find()) {
-        return matcher.group(1);
-      }
-    } catch (Exception ignored) {
-      return null;
-    }
-    return null;
   }
 
   private Bundle extractSingleBundle(org.openprovenance.prov.model.Document document) {
