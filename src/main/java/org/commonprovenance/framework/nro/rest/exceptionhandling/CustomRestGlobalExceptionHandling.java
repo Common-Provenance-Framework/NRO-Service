@@ -14,16 +14,18 @@ import org.commonprovenance.framework.nro.exceptions.OrganizationIdMismatchExcep
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
 import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
+import org.jspecify.annotations.NonNull;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.jspecify.annotations.NonNull;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.util.UrlPathHelper;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@Order(1)
 @RestControllerAdvice
 public class CustomRestGlobalExceptionHandling {
 
