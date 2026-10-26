@@ -1,20 +1,24 @@
 package org.commonprovenance.framework.nro.service;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -59,6 +63,7 @@ import org.commonprovenance.framework.nro.exceptions.MissingSignatureException;
 import org.commonprovenance.framework.nro.exceptions.OrganizationNotFoundException;
 import org.commonprovenance.framework.nro.exceptions.SignatureVerificationException;
 import org.commonprovenance.framework.nro.exceptions.TokenAlreadyExistsException;
+import org.commonprovenance.framework.nro.exceptions.TokenCreationException;
 import org.commonprovenance.framework.nro.utils.prov.ProvToolboxUtils;
 import org.jspecify.annotations.NonNull;
 import org.openprovenance.prov.model.Bundle;
@@ -155,7 +160,7 @@ public class TokenService {
     String bundleIdentifier = resolveBundleIdentifier(bundle);
 
     Organization org = organizationRepository.findById(Objects.requireNonNull(body.getOrganizationId()))
-        .orElseThrow(() -> new OrganizationNotFoundException(body.getOrganizationId()));
+        .orElseThrow(() -> new OrganizationNotFoundException("Organization with id '" + body.getOrganizationId() + "' not found!"));
 
     if (body.getGraphType() == GraphType.DOMAIN_SPECIFIC
         || body.getGraphType() == GraphType.BACKBONE) {
@@ -367,7 +372,7 @@ public class TokenService {
       JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
           .type(JOSEObjectType.JWT)
           .x509CertChain(x5c) // trustedPartyCertificate
-          .customParam("trustedPartyUri", appProperties.getFqdn()) // trustedPartyCertificate
+          .customParam("trustedPartyUri", appProperties.getFqdn())
           .build();
 
       PrivateKey privateKey = loadPrivateKey();
@@ -380,11 +385,11 @@ public class TokenService {
       signedJWT.sign(signer);
       return signedJWT.serialize();
     } catch (Exception e) {
-      throw new SignatureVerificationException("Failed to build JWT token", e);
+      throw new TokenCreationException("Failed to build JWT token", e);
     }
   }
 
-  private X509Certificate parsePemCertificate(String pem) throws Exception {
+  private X509Certificate parsePemCertificate(String pem) throws CertificateException, IOException {
     CertificateFactory cf = CertificateFactory.getInstance("X.509");
     try (ByteArrayInputStream in = new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII))) {
       return (X509Certificate) cf.generateCertificate(in);
@@ -400,7 +405,7 @@ public class TokenService {
         + "\n-----END CERTIFICATE-----\n";
   }
 
-  private PrivateKey loadPrivateKey() throws Exception {
+  private PrivateKey loadPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
     String pem = Files.readString(Path.of(appProperties.getPrivateKeyPath()));
 
     ensureBouncyCastleProvider();
