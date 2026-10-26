@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class InvalidTimestampException extends RuntimeException {
+public class InvalidTimestampException extends ApplicationException {
 
   public InvalidTimestampException() {
   }

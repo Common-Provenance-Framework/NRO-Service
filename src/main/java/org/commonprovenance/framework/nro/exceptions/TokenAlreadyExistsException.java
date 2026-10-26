@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class TokenAlreadyExistsException extends RuntimeException {
+public class TokenAlreadyExistsException extends ApplicationException {
 
   public TokenAlreadyExistsException() {
   }

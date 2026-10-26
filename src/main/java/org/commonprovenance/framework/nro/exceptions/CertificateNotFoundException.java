@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class CertificateNotFoundException extends RuntimeException {
+public class CertificateNotFoundException extends ApplicationException {
 
   public CertificateNotFoundException() {
   }

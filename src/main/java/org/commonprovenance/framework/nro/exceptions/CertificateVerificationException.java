@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class CertificateVerificationException extends RuntimeException {
+public class CertificateVerificationException extends ApplicationException {
 
   public CertificateVerificationException() {
   }

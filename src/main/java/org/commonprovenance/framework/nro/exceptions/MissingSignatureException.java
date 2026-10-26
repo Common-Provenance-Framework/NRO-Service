@@ -1,6 +1,6 @@
 package org.commonprovenance.framework.nro.exceptions;
 
-public class MissingSignatureException extends RuntimeException {
+public class MissingSignatureException extends ApplicationException {
 
   public MissingSignatureException() {
   }
