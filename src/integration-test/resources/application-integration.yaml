@@ -1,0 +1,8 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+app:
+  id: Trusted_Party
+  fqdn: trusted-party:8020
